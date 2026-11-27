@@ -136,4 +136,77 @@ class EpisodeMetadata(BaseModel):
     thumb_url: str = ""
 
 
-NormalizedMetadata = MovieMetadata | ShowMetadata | SeasonMetadata | EpisodeMetadata
+class TrackInfo(BaseModel):
+    """Track entry inside an album."""
+
+    position: int = 1
+    disc: int = 1
+    title: str = ""
+    duration_ms: int | None = None
+
+
+class ArtistMetadata(BaseModel):
+    """Canonical normalized metadata for a music artist."""
+
+    name: str = ""
+    sort_name: str = ""
+    musicbrainz_artist_id: str = ""
+    artist_type: str = ""  # Group, Person, etc.
+    gender: str = ""
+    disambiguation: str = ""
+    born: str = ""
+    formed: str = ""
+    died: str = ""
+    disbanded: str = ""
+    years_active: str = ""
+    biography: str = ""
+    genres: list[str] = Field(default_factory=list)
+    styles: list[str] = Field(default_factory=list)
+    moods: list[str] = Field(default_factory=list)
+
+
+class AlbumMetadata(BaseModel):
+    """Canonical normalized metadata for a music album."""
+
+    title: str = ""
+    artist: str = ""
+    musicbrainz_artist_id: str = ""
+    musicbrainz_album_id: str = ""
+    musicbrainz_release_group_id: str = ""
+    year: int | None = None
+    release_date: str = ""
+    label: str = ""
+    release_type: str = ""  # Album, Single, EP
+    compilation: bool = False
+    boxset: bool = False
+    review: str = ""
+    rating: float | None = None
+    genres: list[str] = Field(default_factory=list)
+    styles: list[str] = Field(default_factory=list)
+    moods: list[str] = Field(default_factory=list)
+    themes: list[str] = Field(default_factory=list)
+    tracks: list[TrackInfo] = Field(default_factory=list)
+
+
+class TrackMetadata(BaseModel):
+    """Canonical normalized metadata for an audio track."""
+
+    title: str = ""
+    artist: str = ""
+    album: str = ""
+    track_number: int = 1
+    disc_number: int = 1
+    duration_ms: int | None = None
+    year: int | None = None
+    musicbrainz_recording_id: str = ""
+
+
+NormalizedMetadata = (
+    MovieMetadata
+    | ShowMetadata
+    | SeasonMetadata
+    | EpisodeMetadata
+    | ArtistMetadata
+    | AlbumMetadata
+    | TrackMetadata
+)

@@ -14,6 +14,7 @@ dependencies = [
     "itsdangerous>=2.2.0",
     "jinja2>=3.1.4",
     "lxml>=5.3.0",
+    "mutagen>=1.47.0",
     "pillow>=11.0.0",
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
@@ -61,7 +62,7 @@ packages = ["metashelf"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["guessit.*"]
+module = ["guessit.*", "mutagen.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

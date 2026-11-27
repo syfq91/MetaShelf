@@ -2,6 +2,8 @@
 
 from metashelf.domain.models import (
     ActorCredit,
+    AlbumMetadata,
+    ArtistMetadata,
     EpisodeMetadata,
     ItemKind,
     ItemState,
@@ -10,10 +12,14 @@ from metashelf.domain.models import (
     NormalizedMetadata,
     SeasonMetadata,
     ShowMetadata,
+    TrackInfo,
+    TrackMetadata,
 )
 
 __all__ = [
     "ActorCredit",
+    "AlbumMetadata",
+    "ArtistMetadata",
     "EpisodeMetadata",
     "ItemKind",
     "ItemState",
@@ -22,4 +28,6 @@ __all__ = [
     "NormalizedMetadata",
     "SeasonMetadata",
     "ShowMetadata",
+    "TrackInfo",
+    "TrackMetadata",
 ]
