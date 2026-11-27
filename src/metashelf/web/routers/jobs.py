@@ -86,6 +86,52 @@ async def start_auto_match_job(
 
 
 @router.post(
+    "/fetch-subtitles/{library_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def start_fetch_subtitles_job(
+    request: Request,
+    session: DbSession,
+    library_id: int,
+) -> HTMLResponse:
+    """Enqueue a fetch_subtitles job for a movie or TV library."""
+    job = await enqueue_job(
+        session,
+        "fetch_subtitles",
+        {"library_id": library_id, "languages": ["en"], "only_missing": True},
+    )
+    worker: JobWorker = request.app.state.job_worker
+    worker.notify_new_job()
+    return HTMLResponse(
+        f'<div class="alert alert-info text-xs py-1">Queued subtitles job #{job.id}.</div>'
+    )
+
+
+@router.post(
+    "/fetch-lyrics/{library_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def start_fetch_lyrics_job(
+    request: Request,
+    session: DbSession,
+    library_id: int,
+) -> HTMLResponse:
+    """Enqueue a fetch_lyrics job for a music library."""
+    job = await enqueue_job(
+        session,
+        "fetch_lyrics",
+        {"library_id": library_id, "only_missing": True},
+    )
+    worker: JobWorker = request.app.state.job_worker
+    worker.notify_new_job()
+    return HTMLResponse(
+        f'<div class="alert alert-info text-xs py-1">Queued lyrics job #{job.id}.</div>'
+    )
+
+
+@router.post(
     "/{job_id}/cancel",
     response_class=HTMLResponse,
     dependencies=[Depends(require_csrf)],

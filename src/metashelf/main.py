@@ -21,7 +21,9 @@ from metashelf.db.session import (
 )
 from metashelf.jobs.handlers import (
     handle_auto_match,
+    handle_fetch_lyrics,
     handle_fetch_show_episodes,
+    handle_fetch_subtitles,
     handle_scan_library,
 )
 from metashelf.jobs.queue import JobWorker
@@ -58,6 +60,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             "scan_library": handle_scan_library,
             "auto_match": handle_auto_match,
             "fetch_show_episodes": handle_fetch_show_episodes,
+            "fetch_subtitles": handle_fetch_subtitles,
+            "fetch_lyrics": handle_fetch_lyrics,
         },
     )
     app.state.job_worker = worker
