@@ -3,11 +3,22 @@
 from typing import Any
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from metashelf.config import Settings
-from metashelf.db.models import Job, Library
+from metashelf.db.models import Item, Job, Library
+from metashelf.domain.models import ItemKind, ItemState
+from metashelf.matching.movie import auto_match_movie_item
+from metashelf.providers.cache import ProviderResponseCache
+from metashelf.providers.tmdb import TMDBProvider
 from metashelf.scanner.movie import scan_movie_library
+from metashelf.web.routers.settings import (
+    SETTING_LANGUAGE,
+    SETTING_MOVIE_NAMING,
+    SETTING_TMDB_KEY,
+    get_setting_value,
+)
 
 
 async def handle_scan_library(
@@ -32,3 +43,50 @@ async def handle_scan_library(
 
     job.progress = 1
     await session.commit()
+
+
+async def handle_auto_match(
+    session: AsyncSession,
+    job: Job,
+    payload: dict[str, Any],
+    http_client: httpx.AsyncClient,
+    settings: Settings,
+) -> None:
+    """Auto-match all unmatched movies in a library."""
+    library_id = int(payload["library_id"])
+    lib = await session.get(Library, library_id)
+    if lib is None:
+        raise ValueError(f"Library {library_id} not found")
+
+    api_key = await get_setting_value(session, SETTING_TMDB_KEY, settings.tmdb_api_key)
+    lang = await get_setting_value(session, SETTING_LANGUAGE, "en-US")
+    naming = await get_setting_value(session, SETTING_MOVIE_NAMING, "file")
+    cache = ProviderResponseCache(session)
+    provider = TMDBProvider(api_key=api_key, http_client=http_client, cache=cache)
+
+    items = (
+        await session.execute(
+            select(Item).where(
+                Item.library_id == library_id,
+                Item.kind == ItemKind.MOVIE.value,
+                Item.state == ItemState.UNMATCHED.value,
+            )
+        )
+    ).scalars().all()
+
+    job.total = len(items)
+    job.progress = 0
+    await session.commit()
+
+    for idx, item in enumerate(items, start=1):
+        await auto_match_movie_item(
+            session,
+            item,
+            lib,
+            provider,
+            http_client,
+            lang=lang,
+            naming_scheme=naming,
+        )
+        job.progress = idx
+        await session.commit()

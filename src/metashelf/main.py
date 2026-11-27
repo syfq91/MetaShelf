@@ -19,7 +19,7 @@ from metashelf.db.session import (
     create_session_factory,
     run_migrations,
 )
-from metashelf.jobs.handlers import handle_scan_library
+from metashelf.jobs.handlers import handle_auto_match, handle_scan_library
 from metashelf.jobs.queue import JobWorker
 from metashelf.web.routers import auth, jobs, movies, pages
 from metashelf.web.routers import settings as settings_router
@@ -50,7 +50,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         session_factory=session_factory,
         http_client=http_client,
         settings=settings,
-        handlers={"scan_library": handle_scan_library},
+        handlers={
+            "scan_library": handle_scan_library,
+            "auto_match": handle_auto_match,
+        },
     )
     app.state.job_worker = worker
     await worker.start()

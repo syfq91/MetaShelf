@@ -34,6 +34,12 @@
                   hx-swap="innerHTML">
             Scan
           </button>
+          <button type="button" class="btn btn-xs btn-secondary btn-outline"
+                  hx-post="{{ base_url }}/jobs/auto-match/{{ lib.id }}"
+                  hx-target="#toast-container"
+                  hx-swap="innerHTML">
+            Auto-Match
+          </button>
           <button type="button" class="btn btn-xs btn-ghost"
                   hx-post="{{ base_url }}/settings/libraries/{{ lib.id }}/toggle"
                   hx-target="#libraries-list"

@@ -67,6 +67,25 @@ async def start_scan_job(
 
 
 @router.post(
+    "/auto-match/{library_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def start_auto_match_job(
+    request: Request,
+    session: DbSession,
+    library_id: int,
+) -> HTMLResponse:
+    """Enqueue an auto_match job."""
+    job = await enqueue_job(session, "auto_match", {"library_id": library_id})
+    worker: JobWorker = request.app.state.job_worker
+    worker.notify_new_job()
+    return HTMLResponse(
+        f'<div class="alert alert-info text-xs py-1">Queued auto-match job #{job.id}.</div>'
+    )
+
+
+@router.post(
     "/{job_id}/cancel",
     response_class=HTMLResponse,
     dependencies=[Depends(require_csrf)],
