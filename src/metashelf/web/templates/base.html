@@ -109,13 +109,66 @@
     {% endif %}
 
     <!-- Main Workspace -->
-    <main class="flex-1 overflow-auto p-4" id="main-content">
-      <div id="toast-container" class="toast toast-end z-50"></div>
+    <main class="flex-1 overflow-auto p-4" id="main-content" role="main" aria-label="Workspace">
+      <a href="#main-content" class="sr-only focus:not-sr-only btn btn-xs btn-primary mb-2">Skip to main content</a>
+      <div id="toast-container" class="toast toast-end z-50" aria-live="polite" role="status"></div>
       {% block content %}{% endblock %}
     </main>
   </div>
 
   <!-- Modal container -->
   <div id="modal-container"></div>
+
+  <script>
+    (function () {
+      function showToast(message, level) {
+        var container = document.getElementById("toast-container");
+        if (!container) return;
+        var alert = document.createElement("div");
+        alert.className = "alert alert-" + (level || "error") + " text-sm shadow-lg";
+        alert.setAttribute("role", "alert");
+        alert.textContent = message;
+        container.appendChild(alert);
+        setTimeout(function () {
+          alert.remove();
+        }, 5000);
+      }
+
+      document.body.addEventListener("htmx:responseError", function (evt) {
+        var xhr = evt.detail && evt.detail.xhr;
+        var status = xhr ? xhr.status : 0;
+        showToast("Request failed (" + (status || "network error") + ").", "error");
+      });
+
+      document.body.addEventListener("htmx:sendError", function () {
+        showToast("Network error while contacting MetaShelf.", "error");
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+          var saveBtn = document.querySelector('#main-content button[hx-post*="/save"], #main-content [data-save-btn]');
+          if (saveBtn) {
+            e.preventDefault();
+            saveBtn.click();
+          }
+          return;
+        }
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          var rows = Array.prototype.slice.call(document.querySelectorAll("[data-movie-row]"));
+          if (!rows.length) return;
+          var active = document.activeElement;
+          var idx = rows.indexOf(active);
+          if (idx === -1) return;
+          e.preventDefault();
+          var nextIdx = e.key === "ArrowDown" ? Math.min(idx + 1, rows.length - 1) : Math.max(idx - 1, 0);
+          var target = rows[nextIdx];
+          if (target) {
+            target.focus();
+            target.click();
+          }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
