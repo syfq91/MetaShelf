@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}MetaShelf{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-8 card bg-base-100 shadow-sm border border-base-300">
+  <div class="card-body">
+    <h1 class="card-title text-2xl">Welcome to MetaShelf</h1>
+    <p class="text-sm opacity-80">
+      Self-hosted metadata manager for movies, TV shows, music, ebooks, and comics.
+      Sidecar files are written next to your media; your media files are never modified.
+    </p>
+    <div class="card-actions mt-4">
+      <a href="{{ base_url }}/settings" class="btn btn-primary btn-sm">Configure Libraries</a>
+      <a href="{{ base_url }}/movies" class="btn btn-outline btn-sm">Open Movies</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

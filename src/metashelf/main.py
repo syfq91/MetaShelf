@@ -2,8 +2,10 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from metashelf import __version__
@@ -13,6 +15,7 @@ from metashelf.db.session import (
     create_session_factory,
     run_migrations,
 )
+from metashelf.web.routers import pages
 
 
 class HealthResponse(BaseModel):
@@ -48,9 +51,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved_settings
 
+    static_dir = Path(__file__).resolve().parent / "web" / "static"
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     @app.get("/healthz", tags=["system"])
     async def healthz() -> HealthResponse:
         return HealthResponse(status="ok", version=__version__)
+
+    app.include_router(pages.router)
 
     return app
 
