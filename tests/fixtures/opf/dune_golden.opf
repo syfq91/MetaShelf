@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata>
+    <dc:title>Dune</dc:title>
+    <dc:creator id="creator01">Frank Herbert</dc:creator>
+    <dc:creator id="creator02">Brian Herbert</dc:creator>
+    <dc:identifier id="pub-id" opf:scheme="ISBN">9780441172719</dc:identifier>
+    <dc:identifier opf:scheme="OPENLIBRARY">works/OL893415W</dc:identifier>
+    <dc:publisher>Chilton Books</dc:publisher>
+    <dc:date>1965-08-01</dc:date>
+    <dc:language>en</dc:language>
+    <dc:description>Set on the desert planet Arrakis.</dc:description>
+    <dc:subject>Science fiction</dc:subject>
+    <dc:subject>Arrakis</dc:subject>
+    <meta property="belongs-to-collection" id="coll01">Dune Chronicles</meta>
+    <meta refines="#coll01" property="collection-type">series</meta>
+    <meta refines="#coll01" property="group-position">1</meta>
+    <meta name="custom:tag" content="preserve-me"/>
+  </metadata>
+</package>
