@@ -1,0 +1,43 @@
+{% if jobs %}
+<div class="overflow-x-auto bg-base-100 border border-base-300 rounded-box">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Progress</th>
+        <th>Error</th>
+        <th class="text-right">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in jobs %}
+      <tr>
+        <td class="font-mono text-xs">#{{ j.id }}</td>
+        <td class="font-medium">{{ j.type }}</td>
+        <td>
+          <span class="badge badge-xs {% if j.status == 'completed' %}badge-success{% elif j.status == 'running' %}badge-info{% elif j.status == 'failed' %}badge-error{% elif j.status == 'cancelled' %}badge-warning{% else %}badge-ghost{% endif %}">
+            {{ j.status }}
+          </span>
+        </td>
+        <td class="text-xs">{{ j.progress }} / {{ j.total }}</td>
+        <td class="text-xs text-error max-w-xs truncate">{{ j.error or "" }}</td>
+        <td class="text-right">
+          {% if j.status in ['pending', 'running'] %}
+          <button type="button" class="btn btn-xs btn-outline btn-warning"
+                  hx-post="{{ base_url }}/jobs/{{ j.id }}/cancel"
+                  hx-target="#jobs-table-container"
+                  hx-swap="innerHTML">
+            Cancel
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-sm opacity-60">No jobs recorded yet.</p>
+{% endif %}

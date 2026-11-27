@@ -28,6 +28,12 @@
           {% endif %}
         </td>
         <td class="text-right space-x-1">
+          <button type="button" class="btn btn-xs btn-primary btn-outline"
+                  hx-post="{{ base_url }}/jobs/scan/{{ lib.id }}"
+                  hx-target="#toast-container"
+                  hx-swap="innerHTML">
+            Scan
+          </button>
           <button type="button" class="btn btn-xs btn-ghost"
                   hx-post="{{ base_url }}/settings/libraries/{{ lib.id }}/toggle"
                   hx-target="#libraries-list"

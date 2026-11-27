@@ -19,7 +19,9 @@ from metashelf.db.session import (
     create_session_factory,
     run_migrations,
 )
-from metashelf.web.routers import auth, movies, pages
+from metashelf.jobs.handlers import handle_scan_library
+from metashelf.jobs.queue import JobWorker
+from metashelf.web.routers import auth, jobs, movies, pages
 from metashelf.web.routers import settings as settings_router
 
 
@@ -38,13 +40,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.thumbnails_dir.mkdir(parents=True, exist_ok=True)
     run_migrations(settings.resolved_database_url)
     engine = create_async_engine_with_wal(settings.resolved_database_url)
+    session_factory = create_session_factory(engine)
     app.state.engine = engine
-    app.state.session_factory = create_session_factory(engine)
+    app.state.session_factory = session_factory
     http_client = httpx.AsyncClient()
     app.state.http_client = http_client
+
+    worker = JobWorker(
+        session_factory=session_factory,
+        http_client=http_client,
+        settings=settings,
+        handlers={"scan_library": handle_scan_library},
+    )
+    app.state.job_worker = worker
+    await worker.start()
     try:
         yield
     finally:
+        await worker.stop()
         await http_client.aclose()
         await engine.dispose()
 
@@ -74,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(pages.router)
     app.include_router(movies.router)
+    app.include_router(jobs.router)
     app.include_router(settings_router.router)
 
     return app
