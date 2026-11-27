@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     tvdb_api_key: str = ""
     fanart_api_key: str = ""
     google_books_api_key: str = ""
+    comicvine_api_key: str = ""
     database_url: str | None = Field(default=None)
 
     @property

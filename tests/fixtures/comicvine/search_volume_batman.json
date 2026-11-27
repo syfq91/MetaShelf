@@ -1,0 +1,17 @@
+{
+  "error": "OK",
+  "status_code": 1,
+  "results": [
+    {
+      "id": 91273,
+      "name": "Batman",
+      "start_year": "2016",
+      "count_of_issues": 150,
+      "publisher": {"id": 10, "name": "DC Comics"},
+      "description": "<p>Rebirth Batman series.</p>",
+      "image": {
+        "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/batman.jpg"
+      }
+    }
+  ]
+}

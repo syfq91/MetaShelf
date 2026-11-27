@@ -1,0 +1,26 @@
+{
+  "error": "OK",
+  "status_code": 1,
+  "results": [
+    {
+      "id": 532724,
+      "issue_number": "1",
+      "name": "I Am Gotham, Part 1",
+      "cover_date": "2016-08-01",
+      "description": "<p>Gotham City is protected by Batman.</p>",
+      "image": {
+        "super_url": "https://comicvine.gamespot.com/a/uploads/original/batman_1.jpg"
+      }
+    },
+    {
+      "id": 534001,
+      "issue_number": "2",
+      "name": "I Am Gotham, Part 2",
+      "cover_date": "2016-09-01",
+      "description": "<p>Gotham and Gotham Girl arrive.</p>",
+      "image": {
+        "super_url": "https://comicvine.gamespot.com/a/uploads/original/batman_2.jpg"
+      }
+    }
+  ]
+}
