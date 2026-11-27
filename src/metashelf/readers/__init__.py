@@ -1,0 +1,1 @@
+"""Sidecar readers package."""

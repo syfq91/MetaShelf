@@ -1,0 +1,1 @@
+"""Media library scanner package."""
