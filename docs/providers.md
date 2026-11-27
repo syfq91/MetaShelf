@@ -125,3 +125,32 @@ Source: Official Comic Vine API documentation (`comicvine.gamespot.com/api/docum
   - `GET /issues/?api_key=...&format=json&filter=volume:{volume_id}&limit=100` -> `results[]` (`id`, `issue_number`, `name`, `cover_date`, `description`, `image.super_url`).
   - `GET /issue/4000-{issue_id}/?api_key=...&format=json` -> `results` (`id`, `name`, `issue_number`, `cover_date`, `description`, `volume`, `person_credits[]`, `image.super_url`, `site_detail_url`).
 - **Response Check**: `status_code == 1` indicates success; `status_code == 107` indicates rate limit exceeded.
+
+---
+
+## OpenSubtitles REST API v1
+
+Source: Official OpenSubtitles REST API v1 documentation (`opensubtitles.stoplight.io`), verified 2026-11-27.
+
+- **Base URL**: `https://api.opensubtitles.com/api/v1`
+- **Headers**: `Api-Key` (required), `User-Agent` (descriptive, required), `Authorization: Bearer <token>` (required for `POST /download`).
+- **Search**: `GET /subtitles`
+  - Search priority: `moviehash` -> `tmdb_id`/`imdb_id` (+ `season_number`, `episode_number`) -> `query` (+ `year`).
+  - Filter by `languages` (comma-separated ISO 639-1, e.g. `en,es`).
+  - Response: `data[]` with `id`, `attributes` (`language`, `hearing_impaired`, `foreign_parts_only`, `ratings`, `download_count`, `files[].file_id`, `files[].file_name`).
+- **Login**: `POST /login` with `{"username": "...", "password": "..."}` -> `{"token": "..."}`.
+- **Download**: `POST /download` with `{"file_id": <int>}` -> `{"link": "...", "remaining": <int>, "reset_time": "..."}`.
+- **Quotas**: Surface daily download quota exhaustion (`remaining == 0` or HTTP 406/429) clearly as `QuotaExceededError`.
+
+---
+
+## LRCLIB API
+
+Source: Official LRCLIB API documentation (`lrclib.net/docs`), verified 2026-11-27.
+
+- **Base URL**: `https://lrclib.net/api`
+- **Authentication**: None required; supply a descriptive `User-Agent` header.
+- **Endpoints Used**:
+  - `GET /api/get?artist_name=...&track_name=...&album_name=...&duration=...` (duration in integer seconds; matches within ±2s).
+  - `GET /api/search?track_name=...&artist_name=...` (returns up to 20 records).
+- **Response Fields**: `id`, `trackName`, `artistName`, `albumName`, `duration`, `instrumental`, `syncedLyrics`, `plainLyrics`.
