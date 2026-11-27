@@ -1,0 +1,62 @@
+<div class="space-y-4">
+  <div>
+    <h3 class="font-semibold text-sm mb-2">Subtitles on Disk</h3>
+    {% if subtitles_on_disk %}
+    <ul class="space-y-1">
+      {% for sub in subtitles_on_disk %}
+      <li class="flex items-center justify-between bg-base-200 px-3 py-1.5 rounded text-xs">
+        <span class="font-mono">{{ sub.name }}</span>
+        <span class="badge badge-success badge-xs">present</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-xs opacity-60">No external subtitle files found next to this video.</p>
+    {% endif %}
+  </div>
+
+  <div class="border-t border-base-300 pt-3">
+    <h3 class="font-semibold text-sm mb-2">Search OpenSubtitles</h3>
+    <form hx-post="{{ base_url }}/movies/{{ item.id }}/subtitles/search"
+          hx-target="#movie-detail-pane"
+          hx-swap="innerHTML"
+          class="flex gap-2 items-end">
+      <div class="form-control">
+        <label class="label py-1"><span class="label-text text-xs">Languages (comma-separated)</span></label>
+        <input type="text" name="languages" value="en" class="input input-bordered input-sm w-40" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Search Subtitles</button>
+    </form>
+
+    {% if sub_error %}
+    <div class="alert alert-error text-xs py-2 mt-2">{{ sub_error }}</div>
+    {% endif %}
+
+    {% if sub_candidates is defined and sub_candidates is not none %}
+    <div class="space-y-2 mt-3">
+      {% for c in sub_candidates %}
+      <div class="flex items-center justify-between gap-2 p-2 bg-base-200 rounded text-xs">
+        <div class="min-w-0">
+          <div class="font-medium truncate">{{ c.release_name or c.file_id }}</div>
+          <div class="opacity-70">
+            Lang: {{ c.lang }}
+            {% if c.synced %}· <span class="text-success font-semibold">Hash Match</span>{% endif %}
+            {% if c.forced %}· Forced{% endif %}
+            {% if c.hearing_impaired %}· SDH{% endif %}
+          </div>
+        </div>
+        <button type="button" class="btn btn-xs btn-success"
+                hx-post="{{ base_url }}/movies/{{ item.id }}/subtitles/download"
+                hx-vals='{"file_id": "{{ c.file_id }}", "lang": "{{ c.lang }}", "forced": "{{ c.forced | lower }}", "hearing_impaired": "{{ c.hearing_impaired | lower }}"}'
+                hx-target="#movie-detail-pane"
+                hx-swap="innerHTML">
+          Download
+        </button>
+      </div>
+      {% else %}
+      <p class="text-xs opacity-60">No subtitles found.</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>

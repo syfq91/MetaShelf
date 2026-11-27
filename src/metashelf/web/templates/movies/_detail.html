@@ -65,12 +65,18 @@
        hx-get="{{ base_url }}/movies/{{ item.id }}?tab=files"
        hx-target="#movie-detail-pane"
        hx-swap="innerHTML">Files</a>
+    <a role="tab" class="tab {% if tab == 'subtitles' %}tab-active{% endif %}"
+       hx-get="{{ base_url }}/movies/{{ item.id }}?tab=subtitles"
+       hx-target="#movie-detail-pane"
+       hx-swap="innerHTML">Subtitles</a>
   </div>
 
   {% if tab == 'artwork' %}
     {% include "movies/_tab_artwork.html" %}
   {% elif tab == 'files' %}
     {% include "movies/_tab_files.html" %}
+  {% elif tab == 'subtitles' %}
+    {% include "movies/_tab_subtitles.html" %}
   {% else %}
     {% include "movies/_tab_info.html" %}
   {% endif %}

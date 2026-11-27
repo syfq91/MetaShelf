@@ -11,10 +11,18 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from metashelf.auth.deps import CurrentUser, DbSession, require_csrf
-from metashelf.db.models import Artwork, Item, Library
+from metashelf.db.models import Artwork, Item, Library, SidecarFile
 from metashelf.domain.models import ArtworkType, ItemKind, ItemState, MovieMetadata
-from metashelf.providers.base import MissingApiKeyError, ProviderError, SearchQuery
+from metashelf.providers.base import (
+    MissingApiKeyError,
+    ProviderError,
+    QuotaExceededError,
+    SearchQuery,
+    SubtitleCandidate,
+    SubtitleQuery,
+)
 from metashelf.providers.cache import ProviderResponseCache
+from metashelf.providers.opensubtitles import OpenSubtitlesProvider, compute_opensubtitles_hash
 from metashelf.providers.tmdb import TMDBProvider
 from metashelf.scanner.movie import find_movie_nfo
 from metashelf.scanner.parser import parse_movie_filename
@@ -32,6 +40,11 @@ from metashelf.web.routers.settings import (
 )
 from metashelf.web.templating import get_nav_context, render_template
 from metashelf.writers.artwork import ArtworkDownloadError, download_artwork
+from metashelf.writers.subtitles import (
+    SubtitleExistsError,
+    find_existing_subtitles,
+    write_subtitle_file,
+)
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
@@ -99,6 +112,7 @@ async def _detail_context(
 
     nfo_exists = False
     nfo_rel = ""
+    subtitles_on_disk: list[Path] = []
     if library is not None:
         root = Path(library.root_path).resolve()
         video_path = resolve_within_root(item.rel_path, root)
@@ -106,6 +120,7 @@ async def _detail_context(
         if nfo_path is not None:
             nfo_exists = True
             nfo_rel = nfo_path.relative_to(root).as_posix()
+        subtitles_on_disk = find_existing_subtitles(video_path)
 
     return {
         "item": item,
@@ -115,6 +130,7 @@ async def _detail_context(
         "parsed": parsed,
         "nfo_exists": nfo_exists,
         "nfo_rel": nfo_rel,
+        "subtitles_on_disk": subtitles_on_disk,
         "tab": tab,
         "toast": toast,
     }
@@ -593,4 +609,129 @@ async def scrape_apply(
         tab="info",
         toast="Applied scraped metadata. Click Save to write NFO.",
     )
+    return render_template(request, "movies/_detail.html", ctx)
+
+
+def _get_opensubtitles_provider(request: Request, session: AsyncSession) -> OpenSubtitlesProvider:
+    settings = request.app.state.settings
+    return OpenSubtitlesProvider(
+        api_key=settings.opensubtitles_api_key,
+        username=settings.opensubtitles_username,
+        password=settings.opensubtitles_password,
+        http_client=request.app.state.http_client,
+        cache=ProviderResponseCache(session),
+    )
+
+
+@router.post(
+    "/{item_id}/subtitles/search",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def movie_subtitles_search(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+    languages: Annotated[str, Form()] = "en",
+) -> HTMLResponse:
+    item = await session.get(Item, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    library = await session.get(Library, item.library_id)
+    if library is None:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    video_path = resolve_within_root(item.rel_path, Path(library.root_path).resolve())
+    meta = MovieMetadata.model_validate_json(item.metadata_json or "{}")
+    sub_candidates: list[SubtitleCandidate] = []
+    sub_error: str | None = None
+    try:
+        prov = _get_opensubtitles_provider(request, session)
+        sub_candidates = await prov.search(
+            SubtitleQuery(
+                title=meta.title or item.title,
+                year=meta.year or item.year,
+                tmdb_id=meta.tmdb_id,
+                imdb_id=meta.imdb_id,
+                movie_hash=compute_opensubtitles_hash(video_path),
+                languages=_split_csv(languages) or ["en"],
+            )
+        )
+        await session.commit()
+    except (MissingApiKeyError, QuotaExceededError, ProviderError) as exc:
+        sub_error = str(exc)
+
+    ctx = await _detail_context(session, item, tab="subtitles")
+    ctx["sub_candidates"] = sub_candidates
+    ctx["sub_error"] = sub_error
+    return render_template(request, "movies/_detail.html", ctx)
+
+
+@router.post(
+    "/{item_id}/subtitles/download",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def movie_subtitles_download(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+    file_id: Annotated[str, Form()],
+    lang: Annotated[str, Form()] = "en",
+    forced: Annotated[str, Form()] = "false",
+    hearing_impaired: Annotated[str, Form()] = "false",
+) -> HTMLResponse:
+    item = await session.get(Item, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    library = await session.get(Library, item.library_id)
+    if library is None:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    root = Path(library.root_path).resolve()
+    video_path = resolve_within_root(item.rel_path, root)
+    is_forced = forced.lower() == "true"
+    is_hi = hearing_impaired.lower() == "true"
+
+    toast: str | None = None
+    sub_error: str | None = None
+    try:
+        prov = _get_opensubtitles_provider(request, session)
+        dl = await prov.download(
+            SubtitleCandidate(
+                provider="opensubtitles",
+                provider_id=file_id,
+                file_id=file_id,
+                lang=lang,
+                forced=is_forced,
+                hearing_impaired=is_hi,
+            )
+        )
+        written = write_subtitle_file(
+            video_path,
+            lang,
+            dl.content,
+            forced=is_forced,
+            hearing_impaired=is_hi,
+            overwrite=False,
+        )
+        session.add(
+            SidecarFile(
+                item_id=item.id,
+                kind="subtitle",
+                rel_path=written.relative_to(root).as_posix(),
+                lang=lang,
+                format="srt",
+                synced=False,
+                source="opensubtitles",
+                source_id=file_id,
+            )
+        )
+        await session.commit()
+        toast = f"Downloaded subtitle: {written.name}"
+    except (SubtitleExistsError, MissingApiKeyError, QuotaExceededError, ProviderError) as exc:
+        sub_error = str(exc)
+
+    ctx = await _detail_context(session, item, tab="subtitles", toast=toast)
+    ctx["sub_error"] = sub_error
     return render_template(request, "movies/_detail.html", ctx)
