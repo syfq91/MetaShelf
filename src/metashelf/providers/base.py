@@ -21,6 +21,8 @@ class SearchQuery(BaseModel):
     title: str
     year: int | None = None
     lang: str = "en-US"
+    isbn: str | None = None
+    author: str | None = None
 
 
 class Candidate(BaseModel):

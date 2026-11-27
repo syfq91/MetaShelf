@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     tmdb_api_key: str = ""
     tvdb_api_key: str = ""
     fanart_api_key: str = ""
+    google_books_api_key: str = ""
     database_url: str | None = Field(default=None)
 
     @property

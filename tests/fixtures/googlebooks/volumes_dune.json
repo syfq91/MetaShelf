@@ -1,0 +1,24 @@
+{
+  "kind": "books#volumes",
+  "totalItems": 1,
+  "items": [
+    {
+      "id": "B1h0AAAAYAAJ",
+      "volumeInfo": {
+        "title": "Dune",
+        "authors": ["Frank Herbert", "Brian Herbert"],
+        "publisher": "Ace",
+        "publishedDate": "1990-09-01",
+        "description": "Classic science fiction novel.",
+        "industryIdentifiers": [
+          {"type": "ISBN_13", "identifier": "9780441172719"}
+        ],
+        "categories": ["Fiction / Science Fiction"],
+        "language": "en",
+        "imageLinks": {
+          "thumbnail": "http://books.google.com/books/content?id=B1h0AAAAYAAJ&printsec=frontcover&img=1&zoom=1"
+        }
+      }
+    }
+  ]
+}

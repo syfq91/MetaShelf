@@ -1,0 +1,9 @@
+{
+  "key": "/books/OL7353617M",
+  "title": "Dune",
+  "publishers": ["Chilton Books"],
+  "publish_date": "1965",
+  "isbn_13": ["9780441172719"],
+  "works": [{"key": "/works/OL893415W"}],
+  "covers": [123456]
+}
