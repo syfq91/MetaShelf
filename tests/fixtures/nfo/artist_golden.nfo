@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<artist>
+  <name>Daft Punk</name>
+  <sortname>Daft Punk</sortname>
+  <musicbrainzartistid>056e4f3e-d505-4dad-8ec1-d04f521cbb56</musicbrainzartistid>
+  <type>Group</type>
+  <disambiguation>French electronic duo</disambiguation>
+  <formed>1993</formed>
+  <disbanded>2021</disbanded>
+  <biography>French electronic music duo formed in 1993 in Paris.</biography>
+  <genre>electronic</genre>
+  <genre>french house</genre>
+  <customtag>preserve-me</customtag>
+</artist>

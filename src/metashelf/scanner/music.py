@@ -20,6 +20,7 @@ from metashelf.domain.models import (
     TrackInfo,
     TrackMetadata,
 )
+from metashelf.readers.kodi_nfo_music import read_album_nfo, read_artist_nfo
 from metashelf.scanner.movie import ScanStats
 
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".ogg", ".opus", ".m4a", ".aac", ".wav", ".wv"}
@@ -155,7 +156,7 @@ async def scan_music_library(session: AsyncSession, library: Library) -> ScanSta
 
         track_meta = read_audio_tags(audio_path)
 
-        # 1. Artist Item
+        # 1. Artist Item (adopt artist.nfo if present)
         artist_rel = artist_dir.relative_to(root).as_posix() if artist_dir != root else "__root__"
         artist_item = artists_seen.get(artist_rel) or by_rel_path.get(artist_rel)
         if artist_item is None:
@@ -165,14 +166,27 @@ async def scan_music_library(session: AsyncSession, library: Library) -> ScanSta
                 else artist_dir.name
             )
             a_meta = ArtistMetadata(name=artist_name, sort_name=artist_name)
+            a_pids: dict[str, str] = {}
+            a_state = ItemState.UNMATCHED.value
+            artist_nfo = artist_dir / "artist.nfo"
+            if artist_nfo.is_file():
+                try:
+                    a_meta = read_artist_nfo(artist_nfo).metadata
+                    if a_meta.musicbrainz_artist_id:
+                        a_pids["musicbrainz"] = a_meta.musicbrainz_artist_id
+                        a_state = ItemState.MATCHED.value
+                except Exception:
+                    a_state = ItemState.ERROR.value
+
             artist_item = Item(
                 library_id=library.id,
                 kind=ItemKind.ARTIST.value,
                 rel_path=artist_rel,
-                title=a_meta.name,
-                state=ItemState.UNMATCHED.value,
-                provider_ids_json="{}",
+                title=a_meta.name or artist_name,
+                state=a_state,
+                provider_ids_json=json.dumps(a_pids),
                 metadata_json=a_meta.model_dump_json(),
+                sidecar_mtime=artist_nfo.stat().st_mtime if artist_nfo.is_file() else None,
                 scanned_at=now,
             )
             session.add(artist_item)
@@ -192,7 +206,7 @@ async def scan_music_library(session: AsyncSession, library: Library) -> ScanSta
                     )
                     break
 
-        # 2. Album Item
+        # 2. Album Item (adopt album.nfo if present)
         album_rel = album_dir.relative_to(root).as_posix() if album_dir != root else "__album__"
         album_item = albums_seen.get(album_rel) or by_rel_path.get(album_rel)
         if album_item is None:
@@ -204,16 +218,29 @@ async def scan_music_library(session: AsyncSession, library: Library) -> ScanSta
                 artist=artist_item.title,
                 year=album_year,
             )
+            alb_pids: dict[str, str] = {}
+            alb_state = ItemState.UNMATCHED.value
+            album_nfo = album_dir / "album.nfo"
+            if album_nfo.is_file():
+                try:
+                    alb_meta = read_album_nfo(album_nfo).metadata
+                    if alb_meta.musicbrainz_album_id:
+                        alb_pids["musicbrainz"] = alb_meta.musicbrainz_album_id
+                        alb_state = ItemState.MATCHED.value
+                except Exception:
+                    alb_state = ItemState.ERROR.value
+
             album_item = Item(
                 library_id=library.id,
                 kind=ItemKind.ALBUM.value,
                 parent_id=artist_item.id,
                 rel_path=album_rel,
-                title=alb_meta.title,
+                title=alb_meta.title or album_title,
                 year=alb_meta.year,
-                state=ItemState.UNMATCHED.value,
-                provider_ids_json="{}",
+                state=alb_state,
+                provider_ids_json=json.dumps(alb_pids),
                 metadata_json=alb_meta.model_dump_json(),
+                sidecar_mtime=album_nfo.stat().st_mtime if album_nfo.is_file() else None,
                 scanned_at=now,
             )
             session.add(album_item)

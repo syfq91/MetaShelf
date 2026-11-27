@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<album>
+  <title>Discovery</title>
+  <musicbrainzalbumid>rel-discovery-14</musicbrainzalbumid>
+  <musicbrainzreleasegroupid>rg-discovery</musicbrainzreleasegroupid>
+  <albumArtistCredits>
+    <artist>Daft Punk</artist>
+    <musicBrainzArtistID>056e4f3e-d505-4dad-8ec1-d04f521cbb56</musicBrainzArtistID>
+  </albumArtistCredits>
+  <year>2001</year>
+  <releasedate>2001-03-12</releasedate>
+  <label>Virgin</label>
+  <type>Album</type>
+  <compilation>false</compilation>
+  <boxset>false</boxset>
+  <genre>electronic</genre>
+  <track>
+    <position>1</position>
+    <title>One More Time</title>
+    <duration>320000</duration>
+  </track>
+  <track>
+    <position>2</position>
+    <title>Aerodynamic</title>
+    <duration>207000</duration>
+  </track>
+  <dateadded>2025-01-01</dateadded>
+</album>
