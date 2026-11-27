@@ -1,0 +1,35 @@
+<div class="border border-base-300 rounded-box p-3 bg-base-200 text-sm">
+  {% if error %}
+  <div class="alert alert-error text-xs py-1 mb-2">{{ error }}</div>
+  {% endif %}
+  <div class="flex items-center justify-between mb-2">
+    <span class="font-mono text-xs opacity-80">{{ current_path or "Allowed Media Roots" }}</span>
+    <div class="space-x-1">
+      {% if parent_path %}
+      <button type="button" class="btn btn-xs"
+              hx-get="{{ base_url }}/settings/dir-picker?path={{ parent_path | urlencode }}"
+              hx-target="#dir-picker-box"
+              hx-swap="innerHTML">Up</button>
+      {% endif %}
+      {% if current_path %}
+      <button type="button" class="btn btn-xs btn-primary"
+              onclick="document.getElementById('library-root-path').value='{{ current_path }}'; document.getElementById('dir-picker-box').innerHTML='';">
+        Select This Folder
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  <ul class="menu menu-xs bg-base-100 rounded-box max-h-48 overflow-y-auto">
+    {% for d in dirs %}
+    <li>
+      <a hx-get="{{ base_url }}/settings/dir-picker?path={{ d.path | urlencode }}"
+         hx-target="#dir-picker-box"
+         hx-swap="innerHTML">
+        {{ d.name }}
+      </a>
+    </li>
+    {% else %}
+    <li class="disabled"><a>No subdirectories</a></li>
+    {% endfor %}
+  </ul>
+</div>

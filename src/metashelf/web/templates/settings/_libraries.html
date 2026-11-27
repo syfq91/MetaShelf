@@ -1,0 +1,52 @@
+{% if error %}
+<div class="alert alert-error text-sm py-2 mb-3">{{ error }}</div>
+{% endif %}
+
+{% if libraries %}
+<div class="overflow-x-auto">
+  <table class="table table-sm">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Root Path</th>
+        <th>Status</th>
+        <th class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lib in libraries %}
+      <tr>
+        <td class="font-medium">{{ lib.name }}</td>
+        <td><span class="badge badge-outline badge-xs">{{ lib.type }}</span></td>
+        <td class="font-mono text-xs">{{ lib.root_path }}</td>
+        <td>
+          {% if lib.enabled %}
+          <span class="badge badge-success badge-xs">Enabled</span>
+          {% else %}
+          <span class="badge badge-ghost badge-xs">Disabled</span>
+          {% endif %}
+        </td>
+        <td class="text-right space-x-1">
+          <button type="button" class="btn btn-xs btn-ghost"
+                  hx-post="{{ base_url }}/settings/libraries/{{ lib.id }}/toggle"
+                  hx-target="#libraries-list"
+                  hx-swap="innerHTML">
+            {{ "Disable" if lib.enabled else "Enable" }}
+          </button>
+          <button type="button" class="btn btn-xs btn-error btn-outline"
+                  hx-delete="{{ base_url }}/settings/libraries/{{ lib.id }}"
+                  hx-target="#libraries-list"
+                  hx-swap="innerHTML"
+                  hx-confirm="Remove library '{{ lib.name }}' from index? Files on disk will not be touched.">
+            Delete
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-sm opacity-60">No libraries configured yet.</p>
+{% endif %}

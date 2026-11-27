@@ -19,6 +19,7 @@ from metashelf.db.session import (
     run_migrations,
 )
 from metashelf.web.routers import auth, pages
+from metashelf.web.routers import settings as settings_router
 
 
 class HealthResponse(BaseModel):
@@ -68,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(pages.router)
+    app.include_router(settings_router.router)
 
     return app
 
