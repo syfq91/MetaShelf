@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Pilot</title>
+  <showtitle>Breaking Bad</showtitle>
+  <ratings>
+    <rating name="tmdb" max="10" default="true">
+      <value>8.3</value>
+      <votes>450</votes>
+    </rating>
+  </ratings>
+  <season>1</season>
+  <episode>1</episode>
+  <aired>2008-01-20</aired>
+  <plot>Diagnosed with terminal lung cancer, Walter White teams up with Jesse Pinkman.</plot>
+  <runtime>58</runtime>
+  <uniqueid type="tmdb" default="true">62085</uniqueid>
+  <director>Vince Gilligan</director>
+  <credits>Vince Gilligan</credits>
+  <watched>true</watched>
+</episodedetails>

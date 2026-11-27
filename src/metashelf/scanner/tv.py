@@ -16,6 +16,7 @@ from metashelf.domain.models import (
     SeasonMetadata,
     ShowMetadata,
 )
+from metashelf.readers.kodi_nfo_tv import read_episode_nfo, read_tvshow_nfo
 from metashelf.scanner.movie import VIDEO_EXTENSIONS, ScanStats, _is_ignored_video
 from metashelf.scanner.parser import parse_show_folder_name, parse_tv_episode_filename
 
@@ -115,7 +116,7 @@ async def scan_tv_library(session: AsyncSession, library: Library) -> ScanStats:
         show_rel = show_dir.relative_to(root).as_posix()
         parsed_ep = parse_tv_episode_filename(video_path.relative_to(root).as_posix())
 
-        # 1. Ensure Show Item
+        # 1. Ensure Show Item (adopt tvshow.nfo if present)
         show_item = shows_seen.get(show_rel) or by_rel_path.get(show_rel)
         if show_item is None:
             parsed_show = parse_show_folder_name(show_dir.name)
@@ -123,15 +124,34 @@ async def scan_tv_library(session: AsyncSession, library: Library) -> ScanStats:
                 title=parsed_show.title or parsed_ep.show_title,
                 year=parsed_show.year or parsed_ep.year,
             )
+            show_provider_ids: dict[str, str] = {}
+            show_state = ItemState.UNMATCHED.value
+            tvshow_nfo = show_dir / "tvshow.nfo"
+            tvshow_mtime = tvshow_nfo.stat().st_mtime if tvshow_nfo.is_file() else None
+            if tvshow_nfo.is_file():
+                try:
+                    show_meta = read_tvshow_nfo(tvshow_nfo).metadata
+                    if show_meta.tmdb_id:
+                        show_provider_ids["tmdb"] = show_meta.tmdb_id
+                    if show_meta.tvdb_id:
+                        show_provider_ids["tvdb"] = show_meta.tvdb_id
+                    if show_meta.imdb_id:
+                        show_provider_ids["imdb"] = show_meta.imdb_id
+                    if show_provider_ids or show_meta.plot:
+                        show_state = ItemState.MATCHED.value
+                except Exception:
+                    show_state = ItemState.ERROR.value
+
             show_item = Item(
                 library_id=library.id,
                 kind=ItemKind.SHOW.value,
                 rel_path=show_rel,
                 title=show_meta.title,
                 year=show_meta.year,
-                state=ItemState.UNMATCHED.value,
-                provider_ids_json="{}",
+                state=show_state,
+                provider_ids_json=json.dumps(show_provider_ids),
                 metadata_json=show_meta.model_dump_json(),
+                sidecar_mtime=tvshow_mtime,
                 scanned_at=now,
             )
             session.add(show_item)
@@ -205,6 +225,24 @@ async def scan_tv_library(session: AsyncSession, library: Library) -> ScanStats:
             episode=ep_nums[0],
             episodes=ep_nums,
         )
+        ep_state = ItemState.UNMATCHED.value
+        ep_provider_ids: dict[str, str] = {}
+        if ep_nfo.is_file():
+            try:
+                parsed_nfo = read_episode_nfo(ep_nfo)
+                first_ep = parsed_nfo.episodes[0]
+                first_ep.episodes = [e.episode for e in parsed_nfo.episodes] or ep_nums
+                ep_meta = first_ep
+                if ep_meta.tmdb_id:
+                    ep_provider_ids["tmdb"] = ep_meta.tmdb_id
+                if ep_meta.tvdb_id:
+                    ep_provider_ids["tvdb"] = ep_meta.tvdb_id
+                if ep_meta.imdb_id:
+                    ep_provider_ids["imdb"] = ep_meta.imdb_id
+                if ep_provider_ids or ep_meta.plot:
+                    ep_state = ItemState.MATCHED.value
+            except Exception:
+                ep_state = ItemState.ERROR.value
 
         if existing_ep is None:
             ep_item = Item(
@@ -214,8 +252,8 @@ async def scan_tv_library(session: AsyncSession, library: Library) -> ScanStats:
                 rel_path=ep_rel,
                 title=ep_meta.title,
                 year=show_item.year,
-                state=ItemState.UNMATCHED.value,
-                provider_ids_json=json.dumps({}),
+                state=ep_state,
+                provider_ids_json=json.dumps(ep_provider_ids),
                 metadata_json=ep_meta.model_dump_json(),
                 sidecar_mtime=nfo_mtime,
                 media_mtime=stat.st_mtime,

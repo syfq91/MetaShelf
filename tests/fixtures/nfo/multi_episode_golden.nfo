@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+  <title>Part One</title>
+  <showtitle>Breaking Bad</showtitle>
+  <season>1</season>
+  <episode>2</episode>
+  <aired>2008-01-27</aired>
+  <plot>First part of double episode.</plot>
+</episodedetails>
+<episodedetails>
+  <title>Part Two</title>
+  <showtitle>Breaking Bad</showtitle>
+  <season>1</season>
+  <episode>3</episode>
+  <aired>2008-02-03</aired>
+  <plot>Second part of double episode.</plot>
+</episodedetails>
