@@ -1,0 +1,24 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div class="card bg-base-200 border border-base-300">
+    <div class="card-body p-3">
+      <h3 class="font-semibold text-sm">Poster</h3>
+      {% if 'poster' in art_map %}
+      <img src="{{ base_url }}/movies/{{ item.id }}/artwork/poster" alt="Poster" class="max-h-72 object-contain rounded" />
+      <p class="text-xs font-mono opacity-70">{{ art_map['poster'].rel_path }}</p>
+      {% else %}
+      <p class="text-xs opacity-60">No poster on disk. Use Search Online to fetch one.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card bg-base-200 border border-base-300">
+    <div class="card-body p-3">
+      <h3 class="font-semibold text-sm">Fanart</h3>
+      {% if 'fanart' in art_map %}
+      <img src="{{ base_url }}/movies/{{ item.id }}/artwork/fanart" alt="Fanart" class="max-h-72 object-contain rounded" />
+      <p class="text-xs font-mono opacity-70">{{ art_map['fanart'].rel_path }}</p>
+      {% else %}
+      <p class="text-xs opacity-60">No fanart on disk. Use Search Online to fetch one.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>

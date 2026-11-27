@@ -1,0 +1,76 @@
+<dialog class="modal modal-open" id="scrape-modal">
+  <div class="modal-box max-w-3xl">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg">Scrape Movie Metadata (TMDB)</h3>
+      <button type="button" class="btn btn-sm btn-circle btn-ghost"
+              onclick="document.getElementById('modal-container').innerHTML=''">✕</button>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error text-sm py-2 mb-3">{{ error }}</div>
+    {% endif %}
+
+    <form hx-post="{{ base_url }}/movies/{{ item.id }}/scrape/search"
+          hx-target="#modal-container"
+          hx-swap="innerHTML"
+          class="flex flex-wrap gap-2 items-end mb-4">
+      <div class="form-control flex-1 min-w-48">
+        <label class="label py-1"><span class="label-text text-xs">Title</span></label>
+        <input type="text" name="title" value="{{ query_title }}" required class="input input-bordered input-sm" />
+      </div>
+      <div class="form-control w-24">
+        <label class="label py-1"><span class="label-text text-xs">Year</span></label>
+        <input type="text" name="year" value="{{ query_year }}" class="input input-bordered input-sm" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    </form>
+
+    {% if selected_candidate %}
+    <form hx-post="{{ base_url }}/movies/{{ item.id }}/scrape/apply"
+          hx-target="#movie-detail-pane"
+          hx-swap="innerHTML"
+          onsubmit="setTimeout(() => { document.getElementById('modal-container').innerHTML=''; }, 100);"
+          class="space-y-3 border-t border-base-300 pt-3">
+      <input type="hidden" name="provider_id" value="{{ provider_id }}" />
+      <input type="hidden" name="poster_url" value="{{ poster_url }}" />
+      <input type="hidden" name="fanart_url" value="{{ fanart_url }}" />
+
+      <div class="font-semibold">{{ selected_candidate.title }} ({{ selected_candidate.year or '—' }})</div>
+      <p class="text-xs opacity-80">{{ selected_candidate.plot }}</p>
+
+      <div class="text-xs font-semibold">Fields to apply:</div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        {% for fname, flabel in [('title','Title'), ('year','Year & Date'), ('plot','Plot & Tagline'), ('runtime','Runtime'), ('rating','Rating & Votes'), ('genres','Genres'), ('credits','Cast & Crew'), ('poster','Poster'), ('fanart','Fanart')] %}
+        <label class="label cursor-pointer justify-start gap-2">
+          <input type="checkbox" name="fields" value="{{ fname }}" checked class="checkbox checkbox-xs checkbox-primary" />
+          <span>{{ flabel }}</span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="modal-action">
+        <button type="submit" class="btn btn-success btn-sm">Apply Selected</button>
+      </div>
+    </form>
+    {% elif candidates is not none %}
+    <div class="space-y-2 max-h-80 overflow-y-auto">
+      {% for c in candidates %}
+      <div class="flex items-center justify-between gap-3 p-2 rounded border border-base-300 hover:bg-base-200">
+        <div class="min-w-0">
+          <div class="font-medium text-sm">{{ c.title }} ({{ c.year or '—' }})</div>
+          <div class="text-xs opacity-70 line-clamp-2">{{ c.overview }}</div>
+        </div>
+        <button type="button" class="btn btn-xs btn-primary flex-shrink-0"
+                hx-get="{{ base_url }}/movies/{{ item.id }}/scrape/preview/{{ c.provider_id }}"
+                hx-target="#modal-container"
+                hx-swap="innerHTML">
+          Select
+        </button>
+      </div>
+      {% else %}
+      <p class="text-sm opacity-60">No results found on TMDB.</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</dialog>

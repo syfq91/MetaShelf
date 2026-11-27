@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +19,7 @@ from metashelf.db.session import (
     create_session_factory,
     run_migrations,
 )
-from metashelf.web.routers import auth, pages
+from metashelf.web.routers import auth, movies, pages
 from metashelf.web.routers import settings as settings_router
 
 
@@ -39,9 +40,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine = create_async_engine_with_wal(settings.resolved_database_url)
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
+    http_client = httpx.AsyncClient()
+    app.state.http_client = http_client
     try:
         yield
     finally:
+        await http_client.aclose()
         await engine.dispose()
 
 
@@ -69,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(pages.router)
+    app.include_router(movies.router)
     app.include_router(settings_router.router)
 
     return app

@@ -1,0 +1,77 @@
+<div class="p-4 space-y-4">
+  {% if toast %}
+  <div class="alert alert-info text-sm py-2">{{ toast }}</div>
+  {% endif %}
+
+  <!-- Header + Artwork Banner -->
+  <div class="flex flex-col sm:flex-row gap-4 items-start">
+    <div class="w-28 h-40 bg-base-200 rounded-box overflow-hidden flex-shrink-0 border border-base-300 flex items-center justify-center">
+      {% if 'poster' in art_map %}
+      <img src="{{ base_url }}/movies/{{ item.id }}/artwork/poster" alt="Poster" class="w-full h-full object-cover" />
+      {% else %}
+      <span class="text-xs opacity-40">No Poster</span>
+      {% endif %}
+    </div>
+    <div class="flex-1 min-w-0 space-y-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="text-xl font-bold truncate">{{ meta.title or item.title }}</h2>
+        {% if meta.year %}
+        <span class="text-lg opacity-60">({{ meta.year }})</span>
+        {% endif %}
+        <span class="badge badge-sm {% if item.state == 'complete' %}badge-success{% elif item.state == 'matched' %}badge-info{% elif item.state == 'dirty' %}badge-warning{% elif item.state == 'error' %}badge-error{% else %}badge-ghost{% endif %}">
+          {{ item.state }}
+        </span>
+      </div>
+      <p class="text-xs font-mono opacity-60 truncate">{{ item.rel_path }}</p>
+      {% if meta.tagline %}
+      <p class="text-sm italic opacity-80">{{ meta.tagline }}</p>
+      {% endif %}
+
+      <!-- Action Bar -->
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button type="button" class="btn btn-primary btn-xs"
+                hx-get="{{ base_url }}/movies/{{ item.id }}/scrape"
+                hx-target="#modal-container"
+                hx-swap="innerHTML">
+          Search Online
+        </button>
+        <button type="button" class="btn btn-success btn-xs"
+                hx-post="{{ base_url }}/movies/{{ item.id }}/save"
+                hx-target="#movie-detail-pane"
+                hx-swap="innerHTML">
+          Save
+        </button>
+        <button type="button" class="btn btn-outline btn-xs"
+                hx-post="{{ base_url }}/movies/{{ item.id }}/revert"
+                hx-target="#movie-detail-pane"
+                hx-swap="innerHTML">
+          Revert
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div role="tablist" class="tabs tabs-bordered">
+    <a role="tab" class="tab {% if tab == 'info' %}tab-active{% endif %}"
+       hx-get="{{ base_url }}/movies/{{ item.id }}?tab=info"
+       hx-target="#movie-detail-pane"
+       hx-swap="innerHTML">Info</a>
+    <a role="tab" class="tab {% if tab == 'artwork' %}tab-active{% endif %}"
+       hx-get="{{ base_url }}/movies/{{ item.id }}?tab=artwork"
+       hx-target="#movie-detail-pane"
+       hx-swap="innerHTML">Artwork</a>
+    <a role="tab" class="tab {% if tab == 'files' %}tab-active{% endif %}"
+       hx-get="{{ base_url }}/movies/{{ item.id }}?tab=files"
+       hx-target="#movie-detail-pane"
+       hx-swap="innerHTML">Files</a>
+  </div>
+
+  {% if tab == 'artwork' %}
+    {% include "movies/_tab_artwork.html" %}
+  {% elif tab == 'files' %}
+    {% include "movies/_tab_files.html" %}
+  {% else %}
+    {% include "movies/_tab_info.html" %}
+  {% endif %}
+</div>

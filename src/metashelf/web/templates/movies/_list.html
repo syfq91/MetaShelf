@@ -1,0 +1,34 @@
+{% for item in items %}
+  {% set art = art_by_item.get(item.id, {}) %}
+  <div class="px-3 py-2 hover:bg-base-200 cursor-pointer flex items-center justify-between gap-2 {% if selected_item and selected_item.id == item.id or selected_id == item.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+       hx-get="{{ base_url }}/movies/{{ item.id }}"
+       hx-target="#movie-detail-pane"
+       hx-swap="innerHTML">
+    <div class="min-w-0">
+      <div class="font-medium text-sm truncate">{{ item.title or item.rel_path }}</div>
+      <div class="text-xs opacity-60 flex items-center gap-2">
+        <span>{{ item.year or "—" }}</span>
+        <span class="badge badge-xs {% if item.state == 'complete' %}badge-success{% elif item.state == 'matched' %}badge-info{% elif item.state == 'dirty' %}badge-warning{% elif item.state == 'error' %}badge-error{% else %}badge-ghost{% endif %}">
+          {{ item.state }}
+        </span>
+      </div>
+    </div>
+    <div class="flex items-center gap-1 flex-shrink-0 text-xs">
+      <span title="Poster" class="badge badge-xs {% if 'poster' in art %}badge-success{% else %}badge-ghost opacity-40{% endif %}">P</span>
+      <span title="Fanart" class="badge badge-xs {% if 'fanart' in art %}badge-success{% else %}badge-ghost opacity-40{% endif %}">F</span>
+    </div>
+  </div>
+{% else %}
+  {% if page == 1 %}
+  <div class="p-4 text-xs opacity-60 text-center">No matching movies.</div>
+  {% endif %}
+{% endfor %}
+
+{% if has_more %}
+<div hx-get="{{ base_url }}/movies/list?q={{ q | urlencode }}&flt={{ flt }}&sort={{ sort }}&page={{ page + 1 }}"
+     hx-trigger="revealed"
+     hx-swap="outerHTML"
+     class="p-3 text-center text-xs opacity-60">
+  Loading more...
+</div>
+{% endif %}

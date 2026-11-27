@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Movies — MetaShelf{% endblock %}
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
+  <!-- Left Pane: Filterable List -->
+  <section class="w-full lg:w-96 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
+    <div class="p-3 border-b border-base-300 space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <h1 class="font-bold text-base">Movies</h1>
+        <form method="get" action="{{ base_url }}/movies" class="flex items-center gap-1">
+          <input type="hidden" name="flt" value="{{ flt }}" />
+          <input type="hidden" name="q" value="{{ q }}" />
+          <select name="sort" onchange="this.form.submit()" class="select select-bordered select-xs">
+            <option value="title" {% if sort == 'title' %}selected{% endif %}>Sort: Title</option>
+            <option value="year" {% if sort == 'year' %}selected{% endif %}>Sort: Year</option>
+          </select>
+        </form>
+      </div>
+      <div class="flex flex-wrap gap-1">
+        {% for chip_id, chip_label in [('all', 'All'), ('unmatched', 'Unmatched'), ('missing_artwork', 'Missing Artwork'), ('dirty', 'Dirty')] %}
+        <a href="{{ base_url }}/movies?flt={{ chip_id }}&q={{ q | urlencode }}&sort={{ sort }}"
+           class="badge badge-sm {% if flt == chip_id %}badge-primary{% else %}badge-ghost{% endif %} cursor-pointer">
+          {{ chip_label }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="movie-list-pane">
+      {% include "movies/_list.html" %}
+    </div>
+  </section>
+
+  <!-- Right Pane: Detail Editor -->
+  <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="movie-detail-pane">
+    {% if selected_item %}
+      {% include "movies/_detail.html" %}
+    {% else %}
+      <div class="p-8 text-center opacity-60">
+        <p class="text-lg font-medium">No movies found</p>
+        <p class="text-sm mt-1">Add a movie library in Settings and run a scan.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
