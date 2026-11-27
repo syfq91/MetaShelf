@@ -76,6 +76,7 @@ async def test_tmdb_search_fetch_artwork_and_cache(tmp_path: Path) -> None:
                 assert meta.imdb_id == "tt1375666"
                 assert meta.tmdb_id == "27205"
                 assert meta.runtime == 148
+                assert meta.mpaa == "PG-13"
                 assert "Christopher Nolan" in meta.directors
                 assert len(meta.actors) == 2
                 assert meta.actors[0].name == "Leonardo DiCaprio"

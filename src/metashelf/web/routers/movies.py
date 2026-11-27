@@ -518,6 +518,8 @@ async def scrape_apply(
         current.tagline = fetched.tagline
     if "runtime" in selected_fields:
         current.runtime = fetched.runtime
+    if "mpaa" in selected_fields or "rating" in selected_fields:
+        current.mpaa = fetched.mpaa
     if "rating" in selected_fields:
         current.rating = fetched.rating
         current.votes = fetched.votes

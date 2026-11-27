@@ -13,9 +13,9 @@ Source: Official TMDB API v3 documentation (`developer.themoviedb.org`), verifie
 2. **Search Movie**: `GET /3/search/movie`
    - Params: `api_key`, `query`, `year` (optional), `language` (e.g. `en-US`), `include_adult=false`.
    - Response: `results[]` with `id`, `title`, `original_title`, `release_date`, `overview`, `poster_path`, `backdrop_path`, `popularity`, `vote_average`, `vote_count`.
-3. **Movie Details + Credits**: `GET /3/movie/{movie_id}?append_to_response=credits`
-   - Params: `api_key`, `language`, `append_to_response=credits`.
-   - Response fields: `id`, `imdb_id`, `title`, `original_title`, `release_date`, `tagline`, `overview`, `runtime`, `vote_average`, `vote_count`, `genres[].name`, `production_companies[].name`, `production_countries[].name`, `belongs_to_collection.name`, `credits.cast[]` (`name`, `character`, `order`, `profile_path`), `credits.crew[]` (`name`, `job`, `department`).
+3. **Movie Details + Credits + Release Dates**: `GET /3/movie/{movie_id}?append_to_response=credits,release_dates`
+   - Params: `api_key`, `language`, `append_to_response=credits,release_dates`.
+   - Response fields: `id`, `imdb_id`, `title`, `original_title`, `release_date`, `tagline`, `overview`, `runtime`, `vote_average`, `vote_count`, `genres[].name`, `production_companies[].name`, `production_countries[].name`, `belongs_to_collection.name`, `credits.cast[]` (`name`, `character`, `order`, `profile_path`), `credits.crew[]` (`name`, `job`, `department`), `release_dates.results[]` (`iso_3166_1`, `release_dates[].certification`, `release_dates[].type`).
 4. **Movie Images**: `GET /3/movie/{movie_id}/images`
    - Params: `api_key`, `include_image_language` (e.g. `en,null`).
    - Response: `posters[]`, `backdrops[]` with `file_path`, `width`, `height`, `iso_639_1`, `vote_average`.

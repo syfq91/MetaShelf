@@ -25,6 +25,50 @@ def _extract_year(release_date: str | None) -> int | None:
     return None
 
 
+def _extract_certification(release_dates_data: dict[str, Any], lang: str = "en-US") -> str:
+    """Extract MPAA/content certification from TMDB release_dates payload."""
+    results = release_dates_data.get("results")
+    if not isinstance(results, list):
+        return ""
+
+    preferred_country = lang.split("-")[1].upper() if "-" in lang else "US"
+
+    def _pick_from_country(country_code: str) -> str:
+        for entry in results:
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("iso_3166_1") or "").upper() != country_code:
+                continue
+            dates = entry.get("release_dates")
+            if not isinstance(dates, list):
+                continue
+            # Prefer theatrical (type 3 or 2), then any non-empty certification
+            for release_type in (3, 2, None):
+                for rd in dates:
+                    if not isinstance(rd, dict):
+                        continue
+                    if release_type is not None and rd.get("type") != release_type:
+                        continue
+                    cert = str(rd.get("certification") or "").strip()
+                    if cert:
+                        return cert
+        return ""
+
+    for code in (preferred_country, "US"):
+        cert = _pick_from_country(code)
+        if cert:
+            return cert
+
+    for entry in results:
+        if isinstance(entry, dict):
+            code = str(entry.get("iso_3166_1") or "").upper()
+            if code:
+                cert = _pick_from_country(code)
+                if cert:
+                    return cert
+    return ""
+
+
 class TMDBProvider:
     """The Movie Database (TMDB) v3 async provider."""
 
@@ -126,7 +170,7 @@ class TMDBProvider:
         cache_key = f"tmdb:movie:{provider_id}:{lang}"
         data = await self._get_json(
             f"/movie/{provider_id}",
-            {"language": lang, "append_to_response": "credits"},
+            {"language": lang, "append_to_response": "credits,release_dates"},
             cache_key,
         )
 
@@ -169,6 +213,7 @@ class TMDBProvider:
         )
 
         overview = str(data.get("overview") or "")
+        mpaa = _extract_certification(data.get("release_dates") or {}, lang=lang)
         return MovieMetadata(
             title=str(data.get("title") or ""),
             original_title=str(data.get("original_title") or ""),
@@ -179,6 +224,7 @@ class TMDBProvider:
             plot=overview,
             outline=overview,
             runtime=data.get("runtime") if isinstance(data.get("runtime"), int) else None,
+            mpaa=mpaa,
             rating=(
                 round(float(data["vote_average"]), 2)
                 if data.get("vote_average") is not None

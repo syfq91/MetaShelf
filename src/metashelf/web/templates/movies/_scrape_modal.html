@@ -40,7 +40,7 @@
 
       <div class="text-xs font-semibold">Fields to apply:</div>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        {% for fname, flabel in [('title','Title'), ('year','Year & Date'), ('plot','Plot & Tagline'), ('runtime','Runtime'), ('rating','Rating & Votes'), ('genres','Genres'), ('credits','Cast & Crew'), ('poster','Poster'), ('fanart','Fanart')] %}
+        {% for fname, flabel in [('title','Title'), ('year','Year & Date'), ('plot','Plot & Tagline'), ('runtime','Runtime'), ('mpaa','MPAA'), ('rating','Rating & Votes'), ('genres','Genres'), ('credits','Cast & Crew'), ('poster','Poster'), ('fanart','Fanart')] %}
         <label class="label cursor-pointer justify-start gap-2">
           <input type="checkbox" name="fields" value="{{ fname }}" checked class="checkbox checkbox-xs checkbox-primary" />
           <span>{{ flabel }}</span>
