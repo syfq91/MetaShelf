@@ -85,9 +85,29 @@
     <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
   </form>
   {% elif track_meta %}
-  <div class="space-y-2">
-    <h2 class="text-lg font-bold">{{ track_meta.track_number }}. {{ track_meta.title }}</h2>
-    <p class="text-xs font-mono opacity-60">{{ item.rel_path }}</p>
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold">{{ track_meta.track_number }}. {{ track_meta.title }}</h2>
+        <p class="text-xs font-mono opacity-60">{{ item.rel_path }}</p>
+      </div>
+      <button type="button" class="btn btn-primary btn-xs"
+              hx-post="{{ base_url }}/music/{{ item.id }}/lyrics/fetch"
+              hx-target="#music-detail-pane"
+              hx-swap="innerHTML">
+        Fetch Lyrics (LRCLIB)
+      </button>
+    </div>
+    <div class="border-t border-base-300 pt-3">
+      <div class="text-xs font-semibold mb-1">
+        Lyrics {% if lyrics_file_name %}<span class="font-mono opacity-70">({{ lyrics_file_name }})</span>{% endif %}
+      </div>
+      {% if lyrics_text %}
+      <pre class="bg-base-200 p-3 rounded text-xs max-h-72 overflow-y-auto whitespace-pre-wrap">{{ lyrics_text }}</pre>
+      {% else %}
+      <p class="text-xs opacity-60">No .lrc or .txt lyrics file found next to this track.</p>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 </div>

@@ -1,0 +1,12 @@
+[
+  {
+    "id": 99001,
+    "trackName": "Aerodynamic",
+    "artistName": "Daft Punk",
+    "albumName": "Discovery",
+    "duration": 207,
+    "instrumental": false,
+    "plainLyrics": "Instrumental / plain fallback text.",
+    "syncedLyrics": null
+  }
+]

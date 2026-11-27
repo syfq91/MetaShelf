@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from metashelf.auth.deps import CurrentUser, DbSession, require_csrf
-from metashelf.db.models import Artwork, Item, Library
+from metashelf.db.models import Artwork, Item, Library, SidecarFile
 from metashelf.domain.models import (
     AlbumMetadata,
     ArtistMetadata,
@@ -17,9 +17,13 @@ from metashelf.domain.models import (
     ItemState,
     TrackMetadata,
 )
+from metashelf.providers.base import LyricsQuery
+from metashelf.providers.cache import ProviderResponseCache
+from metashelf.providers.lrclib import LRCLIBProvider
 from metashelf.services.paths import PathTraversalError, resolve_within_root
 from metashelf.web.templating import get_nav_context, render_template
 from metashelf.writers.kodi_nfo_music import write_album_nfo, write_artist_nfo
+from metashelf.writers.lyrics import LyricsExistsError, find_existing_lyrics, write_lyrics_file
 
 router = APIRouter(prefix="/music", tags=["music"])
 
@@ -76,12 +80,21 @@ async def _music_detail_context(
     artist_meta: ArtistMetadata | None = None
     album_meta: AlbumMetadata | None = None
     track_meta: TrackMetadata | None = None
+    lyrics_text: str = ""
+    lyrics_file_name: str = ""
     if item.kind == ItemKind.ARTIST.value:
         artist_meta = ArtistMetadata.model_validate_json(item.metadata_json or "{}")
     elif item.kind == ItemKind.ALBUM.value:
         album_meta = AlbumMetadata.model_validate_json(item.metadata_json or "{}")
     else:
         track_meta = TrackMetadata.model_validate_json(item.metadata_json or "{}")
+        library = await session.get(Library, item.library_id)
+        if library is not None:
+            audio_path = resolve_within_root(item.rel_path, Path(library.root_path).resolve())
+            existing_lyrics = find_existing_lyrics(audio_path)
+            if existing_lyrics is not None:
+                lyrics_file_name = existing_lyrics.name
+                lyrics_text = existing_lyrics.read_text(encoding="utf-8", errors="replace")
 
     return {
         "item": item,
@@ -91,6 +104,8 @@ async def _music_detail_context(
         "artist_meta": artist_meta,
         "album_meta": album_meta,
         "track_meta": track_meta,
+        "lyrics_text": lyrics_text,
+        "lyrics_file_name": lyrics_file_name,
         "toast": toast,
     }
 
@@ -252,3 +267,63 @@ async def serve_music_artwork(
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Artwork missing")
     return FileResponse(file_path)
+
+
+@router.post(
+    "/{item_id}/lyrics/fetch",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def fetch_track_lyrics_route(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+) -> HTMLResponse:
+    """Fetch lyrics for a single track from LRCLIB and save .lrc or .txt."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.TRACK.value:
+        raise HTTPException(status_code=404, detail="Track not found")
+    library = await session.get(Library, item.library_id)
+    if library is None:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    root = Path(library.root_path).resolve()
+    audio_path = resolve_within_root(item.rel_path, root)
+    t_meta = TrackMetadata.model_validate_json(item.metadata_json or "{}")
+    dur_s = int(t_meta.duration_ms / 1000) if t_meta.duration_ms else None
+
+    prov = LRCLIBProvider(
+        http_client=request.app.state.http_client,
+        cache=ProviderResponseCache(session),
+    )
+    cands = await prov.search(
+        LyricsQuery(
+            title=t_meta.title or item.title,
+            artist=t_meta.artist,
+            album=t_meta.album,
+            duration_seconds=dur_s,
+        )
+    )
+    toast = "No lyrics found on LRCLIB."
+    if cands:
+        best = cands[0]
+        try:
+            written = write_lyrics_file(audio_path, best.text, synced=best.synced, overwrite=False)
+            session.add(
+                SidecarFile(
+                    item_id=item.id,
+                    kind="lyrics",
+                    rel_path=written.relative_to(root).as_posix(),
+                    format=best.format,
+                    synced=best.synced,
+                    source="lrclib",
+                    source_id=best.provider_id,
+                )
+            )
+            await session.commit()
+            toast = f"Saved lyrics: {written.name}"
+        except LyricsExistsError:
+            toast = "Lyrics file already exists on disk."
+
+    ctx = await _music_detail_context(session, item, toast=toast)
+    return render_template(request, "music/_detail.html", ctx)
