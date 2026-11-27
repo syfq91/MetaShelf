@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Comics — MetaShelf{% endblock %}
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
+  <!-- Left Pane: Series-grouped Issues -->
+  <section class="w-full lg:w-80 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
+    <div class="p-3 border-b border-base-300">
+      <h1 class="font-bold text-base">Comics</h1>
+    </div>
+    <div class="flex-1 overflow-y-auto divide-y divide-base-200">
+      {% for series_name, issues in series_groups %}
+      <div class="p-2">
+        <div class="text-xs font-bold uppercase tracking-wider opacity-70 px-1 mb-1">
+          {{ series_name }}
+        </div>
+        <div class="space-y-1">
+          {% for item, meta in issues %}
+          <div class="px-2 py-1.5 rounded hover:bg-base-200 cursor-pointer flex items-center justify-between {% if selected_item and selected_item.id == item.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+               hx-get="{{ base_url }}/comics/{{ item.id }}"
+               hx-target="#comic-detail-pane"
+               hx-swap="innerHTML">
+            <span class="text-sm truncate">#{{ meta.number or '?' }} — {{ meta.title or item.title }}</span>
+            <span class="badge badge-xs">{{ item.state }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="p-4 text-xs opacity-60 text-center">No comics scanned yet.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="comic-detail-pane">
+    {% if selected_item %}
+      {% include "comics/_detail.html" %}
+    {% else %}
+      <div class="p-8 text-center opacity-60">
+        <p class="text-lg font-medium">No comics found</p>
+        <p class="text-sm mt-1">Add a Comics library in Settings and run a scan.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

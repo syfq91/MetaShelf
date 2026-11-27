@@ -25,7 +25,7 @@ from metashelf.jobs.handlers import (
     handle_scan_library,
 )
 from metashelf.jobs.queue import JobWorker
-from metashelf.web.routers import auth, ebooks, jobs, movies, music, pages, tv
+from metashelf.web.routers import auth, comics, ebooks, jobs, movies, music, pages, tv
 from metashelf.web.routers import settings as settings_router
 
 
@@ -98,6 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(tv.router)
     app.include_router(music.router)
     app.include_router(ebooks.router)
+    app.include_router(comics.router)
     app.include_router(jobs.router)
     app.include_router(settings_router.router)
 
