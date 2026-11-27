@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     media_roots: str = "/media"
     base_url: str = ""
     log_level: str = "INFO"
+    log_format: str = "json"
     tmdb_api_key: str = ""
     tvdb_api_key: str = ""
     fanart_api_key: str = ""

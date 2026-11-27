@@ -6,14 +6,16 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sqlalchemy import func, select
 
 from metashelf import __version__
 from metashelf.auth.deps import AuthRedirectError
 from metashelf.auth.security import LoginRateLimiter
 from metashelf.config import Settings, get_settings
+from metashelf.db.models import Item, Job, Library
 from metashelf.db.session import (
     create_async_engine_with_wal,
     create_session_factory,
@@ -28,6 +30,7 @@ from metashelf.jobs.handlers import (
 )
 from metashelf.jobs.queue import JobWorker
 from metashelf.jobs.scheduler import LibraryScheduler, LibraryWatcher
+from metashelf.logging_config import configure_logging
 from metashelf.web.routers import auth, comics, ebooks, jobs, movies, music, pages, tv
 from metashelf.web.routers import settings as settings_router
 
@@ -89,6 +92,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     resolved_settings = settings or get_settings()
+    configure_logging(resolved_settings.log_level, resolved_settings.log_format)
     app = FastAPI(
         title="MetaShelf",
         version=__version__,
@@ -107,6 +111,40 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/healthz", tags=["system"])
     async def healthz() -> HealthResponse:
         return HealthResponse(status="ok", version=__version__)
+
+    @app.get("/metrics", tags=["system"], response_class=PlainTextResponse)
+    async def metrics() -> PlainTextResponse:
+        async with app.state.session_factory() as session:
+            lib_count = int((await session.scalar(select(func.count()).select_from(Library))) or 0)
+            item_rows = (
+                await session.execute(select(Item.kind, func.count()).group_by(Item.kind))
+            ).all()
+            job_rows = (
+                await session.execute(select(Job.status, func.count()).group_by(Job.status))
+            ).all()
+
+        lines = [
+            "# HELP metashelf_libraries_total Total configured libraries",
+            "# TYPE metashelf_libraries_total gauge",
+            f"metashelf_libraries_total {lib_count}",
+            "# HELP metashelf_items_total Total indexed items by kind",
+            "# TYPE metashelf_items_total gauge",
+        ]
+        for kind, count in item_rows:
+            lines.append(f'metashelf_items_total{{kind="{kind}"}} {int(count)}')
+        lines.extend(
+            [
+                "# HELP metashelf_jobs_total Total background jobs by status",
+                "# TYPE metashelf_jobs_total gauge",
+            ]
+        )
+        for job_status, count in job_rows:
+            lines.append(f'metashelf_jobs_total{{status="{job_status}"}} {int(count)}')
+
+        return PlainTextResponse(
+            "\n".join(lines) + "\n",
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
 
     app.include_router(auth.router)
     app.include_router(pages.router)
