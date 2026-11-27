@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     fanart_api_key: str = ""
     google_books_api_key: str = ""
     comicvine_api_key: str = ""
+    opensubtitles_api_key: str = ""
+    opensubtitles_username: str = ""
+    opensubtitles_password: str = ""
     database_url: str | None = Field(default=None)
 
     @property

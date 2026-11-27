@@ -15,6 +15,10 @@ class MissingApiKeyError(ProviderError):
     """Raised when a provider requires an API key that is not configured."""
 
 
+class QuotaExceededError(ProviderError):
+    """Raised when a provider's daily download or API quota is exhausted."""
+
+
 class SearchQuery(BaseModel):
     """Normalized search query sent to providers."""
 
@@ -64,3 +68,80 @@ class Provider(Protocol):
     async def fetch(self, kind: str, provider_id: str, lang: str) -> NormalizedMetadata: ...
 
     async def artwork(self, kind: str, provider_id: str) -> list[ArtworkCandidate]: ...
+
+
+class SubtitleQuery(BaseModel):
+    """Normalized search query for subtitles."""
+
+    title: str = ""
+    year: int | None = None
+    tmdb_id: str = ""
+    imdb_id: str = ""
+    season: int | None = None
+    episode: int | None = None
+    movie_hash: str | None = None
+    languages: list[str] = Field(default_factory=lambda: ["en"])
+
+
+class SubtitleCandidate(BaseModel):
+    """A subtitle search candidate."""
+
+    provider: str
+    provider_id: str
+    file_id: str
+    lang: str
+    format: str = "srt"
+    forced: bool = False
+    hearing_impaired: bool = False
+    synced: bool = False  # True when matched by file hash
+    score: float = 0.0
+    release_name: str = ""
+
+
+class SubtitleDownload(BaseModel):
+    """Downloaded subtitle file bytes and remaining quota."""
+
+    content: bytes
+    file_name: str = ""
+    remaining_quota: int | None = None
+
+
+class SubtitleProvider(Protocol):
+    """Async subtitle provider protocol."""
+
+    id: str
+    needs_api_key: bool
+
+    async def search(self, query: SubtitleQuery) -> list[SubtitleCandidate]: ...
+
+    async def download(self, candidate: SubtitleCandidate) -> SubtitleDownload: ...
+
+
+class LyricsQuery(BaseModel):
+    """Normalized search query for track lyrics."""
+
+    title: str
+    artist: str
+    album: str = ""
+    duration_seconds: int | None = None
+
+
+class LyricsCandidate(BaseModel):
+    """A track lyrics candidate."""
+
+    provider: str
+    provider_id: str
+    lang: str = "en"
+    format: str = "lrc"  # lrc or txt
+    synced: bool = False
+    score: float = 0.0
+    text: str = ""
+
+
+class LyricsProvider(Protocol):
+    """Async lyrics provider protocol."""
+
+    id: str
+    needs_api_key: bool
+
+    async def search(self, query: LyricsQuery) -> list[LyricsCandidate]: ...
