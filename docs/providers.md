@@ -107,3 +107,21 @@ Source: Official Google Books API v1 documentation (`developers.google.com/books
   - `GET /volumes?q=isbn:{isbn}` or `q=intitle:{title}+inauthor:{author}` -> `items[]` (`id`, `volumeInfo`: `title`, `authors[]`, `publisher`, `publishedDate`, `description`, `industryIdentifiers[]`, `categories[]`, `language`, `imageLinks.thumbnail`).
   - `GET /volumes/{volume_id}` -> full volume details.
 - **Note**: Replace `http://` with `https://` on `imageLinks` URLs.
+
+---
+
+## Comic Vine API
+
+Source: Official Comic Vine API documentation (`comicvine.gamespot.com/api/documentation`), verified 2026-11-27.
+
+- **Base URL**: `https://comicvine.gamespot.com/api`
+- **Authentication**: `api_key` query parameter (`METASHELF_COMICVINE_API_KEY`). Missing key raises `MissingApiKeyError`.
+- **User-Agent**: Descriptive `User-Agent` header is **required** (generic/blank user agents are blocked).
+- **Format**: Pass `format=json` on every request (defaults to XML otherwise).
+- **Rate Limits**: Strict throttling (HTTP 429 or JSON `status_code: 107`). MetaShelf enforces `AsyncRateLimiter(calls_per_second=0.8)` (~1 req per 1.25s) and caches all responses in `provider_cache`.
+- **Endpoints Used**:
+  - `GET /search/?api_key=...&format=json&resources=volume&query=...` -> `results[]` (`id`, `name`, `start_year`, `publisher.name`, `count_of_issues`, `description`, `image.medium_url`).
+  - `GET /volume/4050-{volume_id}/?api_key=...&format=json` -> `results` (`id`, `name`, `start_year`, `publisher.name`, `description`, `issues[]`).
+  - `GET /issues/?api_key=...&format=json&filter=volume:{volume_id}&limit=100` -> `results[]` (`id`, `issue_number`, `name`, `cover_date`, `description`, `image.super_url`).
+  - `GET /issue/4000-{issue_id}/?api_key=...&format=json` -> `results` (`id`, `name`, `issue_number`, `cover_date`, `description`, `volume`, `person_credits[]`, `image.super_url`, `site_detail_url`).
+- **Response Check**: `status_code == 1` indicates success; `status_code == 107` indicates rate limit exceeded.
