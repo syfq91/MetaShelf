@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     opensubtitles_api_key: str = ""
     opensubtitles_username: str = ""
     opensubtitles_password: str = ""
+    watch_enabled: bool = False
     database_url: str | None = Field(default=None)
 
     @property

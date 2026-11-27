@@ -27,6 +27,7 @@ from metashelf.jobs.handlers import (
     handle_scan_library,
 )
 from metashelf.jobs.queue import JobWorker
+from metashelf.jobs.scheduler import LibraryScheduler, LibraryWatcher
 from metashelf.web.routers import auth, comics, ebooks, jobs, movies, music, pages, tv
 from metashelf.web.routers import settings as settings_router
 
@@ -66,9 +67,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     app.state.job_worker = worker
     await worker.start()
+    scheduler = LibraryScheduler(session_factory=session_factory)
+    app.state.scheduler = scheduler
+    await scheduler.start()
+    watcher: LibraryWatcher | None = None
+    if settings.watch_enabled:
+        watcher = LibraryWatcher(session_factory=session_factory)
+        app.state.watcher = watcher
+        await watcher.start()
     try:
         yield
     finally:
+        if watcher is not None:
+            await watcher.stop()
+        await scheduler.stop()
         await worker.stop()
         await http_client.aclose()
         await engine.dispose()
