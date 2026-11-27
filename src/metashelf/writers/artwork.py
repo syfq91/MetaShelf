@@ -40,7 +40,14 @@ def validate_artwork_url(url: str) -> None:
 
     try:
         ip = ipaddress.ip_address(host)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_unspecified
+            or ip.is_multicast
+        ):
             raise ArtworkDownloadError(f"Refused non-public artwork IP: {host}")
     except ValueError:
         pass
