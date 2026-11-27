@@ -9,12 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from metashelf.config import Settings
 from metashelf.db.models import Item, Job, Library
 from metashelf.domain.models import ItemKind, ItemState
+from metashelf.matching.ebook import auto_match_ebook_library
 from metashelf.matching.movie import auto_match_movie_item
 from metashelf.matching.music import auto_match_music_library
 from metashelf.providers.cache import ProviderResponseCache
 from metashelf.providers.coverart import CoverArtArchiveProvider
+from metashelf.providers.googlebooks import GoogleBooksProvider
 from metashelf.providers.musicbrainz import MusicBrainzProvider
+from metashelf.providers.openlibrary import OpenLibraryProvider
 from metashelf.providers.tmdb import TMDBProvider
+from metashelf.scanner.ebook import scan_ebook_library
 from metashelf.scanner.movie import scan_movie_library
 from metashelf.scanner.music import scan_music_library
 from metashelf.scanner.tv import scan_tv_library
@@ -50,6 +54,8 @@ async def handle_scan_library(
         await scan_tv_library(session, lib)
     elif lib.type == "music":
         await scan_music_library(session, lib)
+    elif lib.type == "ebook":
+        await scan_ebook_library(session, lib)
 
     job.progress = 1
     await session.commit()
@@ -106,6 +112,21 @@ async def handle_auto_match(
         job.progress = 0
         await session.commit()
         await auto_match_music_library(session, lib, mb, caa, http_client)
+        job.progress = 1
+        await session.commit()
+        return
+
+    if lib.type == "ebook":
+        ol = OpenLibraryProvider(http_client=http_client, cache=cache)
+        gb = GoogleBooksProvider(
+            http_client=http_client,
+            api_key=settings.google_books_api_key,
+            cache=cache,
+        )
+        job.total = 1
+        job.progress = 0
+        await session.commit()
+        await auto_match_ebook_library(session, lib, ol, gb, http_client)
         job.progress = 1
         await session.commit()
         return
