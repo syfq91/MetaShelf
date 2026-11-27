@@ -80,3 +80,30 @@ Source: Official Cover Art Archive documentation (`coverartarchive.org`), verifi
 - **Endpoints Used**:
   - `GET /release/{mbid}` -> `images[]` (`front`, `back`, `types[]`, `image`, `thumbnails.500` / `thumbnails.1200`)
   - `GET /release-group/{mbid}` -> fallback if release has no cover art.
+
+---
+
+## Open Library API
+
+Source: Official Open Library Developer Documentation (`openlibrary.org/developers/api`), verified 2026-11-27.
+
+- **Base URL**: `https://openlibrary.org`
+- **Authentication**: None required; supply a descriptive `User-Agent` header.
+- **Endpoints Used**:
+  - `GET /search.json?isbn=...` or `?title=...&author=...` -> `docs[]` (`key`, `title`, `author_name[]`, `first_publish_year`, `publisher[]`, `isbn[]`, `subject[]`, `cover_i`).
+  - `GET /isbn/{isbn}.json` -> edition details (`title`, `publishers[]`, `publish_date`, `isbn_13[]`, `isbn_10[]`, `works[].key`, `covers[]`).
+  - `GET {work_key}.json` -> `description` (string or `{"value": "..."}`), `subjects[]`.
+- **Covers API**: `https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg?default=false` or `https://covers.openlibrary.org/b/id/{cover_i}-L.jpg?default=false`.
+
+---
+
+## Google Books API v1
+
+Source: Official Google Books API v1 documentation (`developers.google.com/books/docs/v1/using`), verified 2026-11-27.
+
+- **Base URL**: `https://www.googleapis.com/books/v1`
+- **Authentication**: Optional `key` query parameter (`METASHELF_GOOGLE_BOOKS_API_KEY`).
+- **Endpoints Used**:
+  - `GET /volumes?q=isbn:{isbn}` or `q=intitle:{title}+inauthor:{author}` -> `items[]` (`id`, `volumeInfo`: `title`, `authors[]`, `publisher`, `publishedDate`, `description`, `industryIdentifiers[]`, `categories[]`, `language`, `imageLinks.thumbnail`).
+  - `GET /volumes/{volume_id}` -> full volume details.
+- **Note**: Replace `http://` with `https://` on `imageLinks` URLs.
