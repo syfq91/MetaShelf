@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     base_url: str = ""
     log_level: str = "INFO"
     tmdb_api_key: str = ""
+    tvdb_api_key: str = ""
+    fanart_api_key: str = ""
     database_url: str | None = Field(default=None)
 
     @property

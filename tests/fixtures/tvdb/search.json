@@ -1,0 +1,12 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "tvdb_id": "81189",
+      "name": "Breaking Bad",
+      "year": "2008",
+      "overview": "A high school chemistry teacher diagnosed with inoperable lung cancer.",
+      "image_url": "https://artworks.thetvdb.com/banners/posters/81189-10.jpg"
+    }
+  ]
+}

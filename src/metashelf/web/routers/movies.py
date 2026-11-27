@@ -448,6 +448,7 @@ async def scrape_preview(
     try:
         provider = await _get_tmdb_provider(request, session)
         fetched = await provider.fetch("movie", provider_id, lang)
+        assert isinstance(fetched, MovieMetadata)
         artworks = await provider.artwork("movie", provider_id)
         await session.commit()
     except (MissingApiKeyError, ProviderError) as exc:
@@ -503,6 +504,7 @@ async def scrape_apply(
 
     provider = await _get_tmdb_provider(request, session)
     fetched = await provider.fetch("movie", provider_id, lang)
+    assert isinstance(fetched, MovieMetadata)
 
     current = MovieMetadata.model_validate_json(item.metadata_json or "{}")
     if "title" in selected_fields:

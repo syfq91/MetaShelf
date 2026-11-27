@@ -1,0 +1,16 @@
+{
+  "name": "Breaking Bad",
+  "thetvdb_id": "81189",
+  "tvposter": [
+    {"id": "1", "url": "https://assets.fanart.tv/fanart/tv/81189/tvposter/breaking-bad-1.jpg", "lang": "en", "likes": "12"}
+  ],
+  "showbackground": [
+    {"id": "2", "url": "https://assets.fanart.tv/fanart/tv/81189/showbackground/breaking-bad-2.jpg", "lang": "", "likes": "9"}
+  ],
+  "tvbanner": [
+    {"id": "3", "url": "https://assets.fanart.tv/fanart/tv/81189/tvbanner/breaking-bad-3.jpg", "lang": "en", "likes": "5"}
+  ],
+  "hdtvlogo": [
+    {"id": "4", "url": "https://assets.fanart.tv/fanart/tv/81189/hdtvlogo/breaking-bad-4.png", "lang": "en", "likes": "8"}
+  ]
+}

@@ -4,7 +4,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, Field
 
-from metashelf.domain.models import MovieMetadata
+from metashelf.domain.models import NormalizedMetadata
 
 
 class ProviderError(RuntimeError):
@@ -59,6 +59,6 @@ class Provider(Protocol):
 
     async def search(self, kind: str, query: SearchQuery) -> list[Candidate]: ...
 
-    async def fetch(self, kind: str, provider_id: str, lang: str) -> MovieMetadata: ...
+    async def fetch(self, kind: str, provider_id: str, lang: str) -> NormalizedMetadata: ...
 
     async def artwork(self, kind: str, provider_id: str) -> list[ArtworkCandidate]: ...

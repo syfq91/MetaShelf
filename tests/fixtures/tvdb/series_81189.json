@@ -1,0 +1,13 @@
+{
+  "status": "success",
+  "data": {
+    "id": 81189,
+    "name": "Breaking Bad",
+    "firstAired": "2008-01-20",
+    "overview": "A high school chemistry teacher diagnosed with inoperable lung cancer.",
+    "status": {"name": "Ended"},
+    "score": 9.5,
+    "genres": [{"name": "Drama"}, {"name": "Crime"}],
+    "image": "https://artworks.thetvdb.com/banners/posters/81189-10.jpg"
+  }
+}

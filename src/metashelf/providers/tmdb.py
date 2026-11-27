@@ -4,7 +4,14 @@ from typing import Any
 
 import httpx
 
-from metashelf.domain.models import ActorCredit, ArtworkType, MovieMetadata
+from metashelf.domain.models import (
+    ActorCredit,
+    ArtworkType,
+    EpisodeMetadata,
+    MovieMetadata,
+    NormalizedMetadata,
+    ShowMetadata,
+)
 from metashelf.providers.base import (
     ArtworkCandidate,
     Candidate,
@@ -73,7 +80,7 @@ class TMDBProvider:
     """The Movie Database (TMDB) v3 async provider."""
 
     id = "tmdb"
-    media_kinds = {"movie"}
+    media_kinds = {"movie", "show"}
     needs_api_key = True
 
     def __init__(
@@ -129,6 +136,8 @@ class TMDBProvider:
         raise ProviderError(f"TMDB request failed for {path}: {last_exc}")
 
     async def search(self, kind: str, query: SearchQuery) -> list[Candidate]:
+        if kind == "show":
+            return await self._search_tv(query)
         if kind != "movie":
             return []
         params: dict[str, str] = {
@@ -164,9 +173,45 @@ class TMDBProvider:
             )
         return candidates
 
-    async def fetch(self, kind: str, provider_id: str, lang: str = "en-US") -> MovieMetadata:
+    async def _search_tv(self, query: SearchQuery) -> list[Candidate]:
+        params: dict[str, str] = {
+            "query": query.title,
+            "language": query.lang,
+            "include_adult": "false",
+        }
+        if query.year is not None:
+            params["first_air_date_year"] = str(query.year)
+
+        cache_key = f"tmdb:search:tv:{query.title.lower()}:{query.year or ''}:{query.lang}"
+        data = await self._get_json("/search/tv", params, cache_key)
+        candidates: list[Candidate] = []
+        for raw in data.get("results", []):
+            if not isinstance(raw, dict) or "id" not in raw:
+                continue
+            poster_path = raw.get("poster_path")
+            backdrop_path = raw.get("backdrop_path")
+            candidates.append(
+                Candidate(
+                    provider=self.id,
+                    provider_id=str(raw["id"]),
+                    title=str(raw.get("name") or ""),
+                    original_title=str(raw.get("original_name") or ""),
+                    year=_extract_year(raw.get("first_air_date")),
+                    overview=str(raw.get("overview") or ""),
+                    poster_url=f"{TMDB_IMAGE_BASE}/w342{poster_path}" if poster_path else None,
+                    backdrop_url=(
+                        f"{TMDB_IMAGE_BASE}/w780{backdrop_path}" if backdrop_path else None
+                    ),
+                    popularity=float(raw.get("popularity") or 0.0),
+                )
+            )
+        return candidates
+
+    async def fetch(self, kind: str, provider_id: str, lang: str = "en-US") -> NormalizedMetadata:
+        if kind == "show":
+            return await self._fetch_tv(provider_id, lang)
         if kind != "movie":
-            raise ProviderError(f"Unsupported kind '{kind}' for TMDB movie fetch")
+            raise ProviderError(f"Unsupported kind '{kind}' for TMDB fetch")
         cache_key = f"tmdb:movie:{provider_id}:{lang}"
         data = await self._get_json(
             f"/movie/{provider_id}",
@@ -254,12 +299,175 @@ class TMDBProvider:
             collection=collection_name,
         )
 
-    async def artwork(self, kind: str, provider_id: str) -> list[ArtworkCandidate]:
-        if kind != "movie":
-            return []
-        cache_key = f"tmdb:movie:{provider_id}:images"
+    async def _fetch_tv(self, provider_id: str, lang: str = "en-US") -> ShowMetadata:
+        cache_key = f"tmdb:tv:{provider_id}:{lang}"
         data = await self._get_json(
-            f"/movie/{provider_id}/images",
+            f"/tv/{provider_id}",
+            {"language": lang, "append_to_response": "credits,external_ids,content_ratings"},
+            cache_key,
+        )
+        first_air = str(data.get("first_air_date") or "")
+        ext = data.get("external_ids") or {}
+        credits_data = data.get("credits") or {}
+
+        actors: list[ActorCredit] = []
+        for idx, member in enumerate(credits_data.get("cast", [])[:25]):
+            if not isinstance(member, dict) or not member.get("name"):
+                continue
+            profile = member.get("profile_path")
+            actors.append(
+                ActorCredit(
+                    name=str(member["name"]),
+                    role=str(member.get("character") or ""),
+                    order=member.get("order") if isinstance(member.get("order"), int) else idx,
+                    thumb=f"{TMDB_IMAGE_BASE}/w185{profile}" if profile else "",
+                )
+            )
+
+        mpaa = ""
+        preferred_country = lang.split("-")[1].upper() if "-" in lang else "US"
+        cr_results = (data.get("content_ratings") or {}).get("results", [])
+        for target_code in (preferred_country, "US"):
+            for entry in cr_results:
+                if (
+                    isinstance(entry, dict)
+                    and str(entry.get("iso_3166_1") or "").upper() == target_code
+                    and entry.get("rating")
+                ):
+                    mpaa = str(entry["rating"])
+                    break
+            if mpaa:
+                break
+
+        overview = str(data.get("overview") or "")
+        return ShowMetadata(
+            title=str(data.get("name") or ""),
+            original_title=str(data.get("original_name") or ""),
+            sort_title=str(data.get("name") or ""),
+            year=_extract_year(first_air),
+            premiered=first_air,
+            status=str(data.get("status") or ""),
+            tagline=str(data.get("tagline") or ""),
+            plot=overview,
+            outline=overview,
+            mpaa=mpaa,
+            rating=(
+                round(float(data["vote_average"]), 2)
+                if data.get("vote_average") is not None
+                else None
+            ),
+            votes=data.get("vote_count") if isinstance(data.get("vote_count"), int) else None,
+            tmdb_id=str(data.get("id") or provider_id),
+            tvdb_id=str(ext.get("tvdb_id") or "") if ext.get("tvdb_id") else "",
+            imdb_id=str(ext.get("imdb_id") or ""),
+            genres=[
+                str(g["name"])
+                for g in data.get("genres", [])
+                if isinstance(g, dict) and g.get("name")
+            ],
+            studios=[
+                str(n["name"])
+                for n in data.get("networks", [])
+                if isinstance(n, dict) and n.get("name")
+            ],
+            countries=[
+                str(c["name"])
+                for c in data.get("production_countries", [])
+                if isinstance(c, dict) and c.get("name")
+            ],
+            actors=actors,
+        )
+
+    async def fetch_season_episodes(
+        self,
+        series_id: str,
+        season_number: int,
+        show_title: str = "",
+        lang: str = "en-US",
+    ) -> list[EpisodeMetadata]:
+        """Fetch all episodes for a given TV season."""
+        cache_key = f"tmdb:tv:{series_id}:s{season_number}:{lang}"
+        data = await self._get_json(
+            f"/tv/{series_id}/season/{season_number}",
+            {"language": lang},
+            cache_key,
+        )
+        episodes: list[EpisodeMetadata] = []
+        for ep in data.get("episodes", []):
+            if not isinstance(ep, dict):
+                continue
+            ep_num = int(ep.get("episode_number") or 0)
+            raw_s = ep.get("season_number")
+            s_num = int(raw_s if raw_s is not None else season_number)
+            still = ep.get("still_path")
+            directors: list[str] = []
+            writers: list[str] = []
+            for crew in ep.get("crew", []):
+                if not isinstance(crew, dict) or not crew.get("name"):
+                    continue
+                job = str(crew.get("job") or "")
+                name = str(crew["name"])
+                if job == "Director" and name not in directors:
+                    directors.append(name)
+                elif job in {"Writer", "Screenplay", "Story"} and name not in writers:
+                    writers.append(name)
+
+            episodes.append(
+                EpisodeMetadata(
+                    title=str(ep.get("name") or f"Episode {ep_num}"),
+                    show_title=show_title,
+                    season=s_num,
+                    episode=ep_num,
+                    episodes=[ep_num] if ep_num else [],
+                    aired=str(ep.get("air_date") or ""),
+                    plot=str(ep.get("overview") or ""),
+                    runtime=ep.get("runtime") if isinstance(ep.get("runtime"), int) else None,
+                    rating=(
+                        round(float(ep["vote_average"]), 2)
+                        if ep.get("vote_average") is not None
+                        else None
+                    ),
+                    votes=ep.get("vote_count") if isinstance(ep.get("vote_count"), int) else None,
+                    tmdb_id=str(ep.get("id") or ""),
+                    directors=directors,
+                    writers=writers,
+                    thumb_url=f"{TMDB_IMAGE_BASE}/original{still}" if still else "",
+                )
+            )
+        return episodes
+
+    async def season_artwork(self, series_id: str, season_number: int) -> list[ArtworkCandidate]:
+        """Fetch poster candidates for a specific TV season."""
+        cache_key = f"tmdb:tv:{series_id}:s{season_number}:images"
+        data = await self._get_json(
+            f"/tv/{series_id}/season/{season_number}/images",
+            {"include_image_language": "en,null"},
+            cache_key,
+        )
+        results: list[ArtworkCandidate] = []
+        for p in data.get("posters", [])[:12]:
+            if isinstance(p, dict) and p.get("file_path"):
+                fp = str(p["file_path"])
+                results.append(
+                    ArtworkCandidate(
+                        type=ArtworkType.POSTER.value,
+                        url=f"{TMDB_IMAGE_BASE}/original{fp}",
+                        thumb_url=f"{TMDB_IMAGE_BASE}/w342{fp}",
+                        width=p.get("width"),
+                        height=p.get("height"),
+                        language=p.get("iso_639_1"),
+                        rating=float(p.get("vote_average") or 0.0),
+                    )
+                )
+        return results
+
+    async def artwork(self, kind: str, provider_id: str) -> list[ArtworkCandidate]:
+        if kind not in {"movie", "show"}:
+            return []
+        endpoint = f"/tv/{provider_id}/images" if kind == "show" else f"/movie/{provider_id}/images"
+        cache_key = f"tmdb:{kind}:{provider_id}:images"
+        data = await self._get_json(
+            endpoint,
             {"include_image_language": "en,null"},
             cache_key,
         )

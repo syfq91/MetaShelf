@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from metashelf.db.models import Artwork, Item, Library
-from metashelf.domain.models import ArtworkType, ItemState
+from metashelf.domain.models import ArtworkType, ItemState, MovieMetadata
 from metashelf.providers.base import Candidate, SearchQuery
 from metashelf.providers.tmdb import TMDBProvider
 from metashelf.scanner.parser import parse_movie_filename
@@ -103,6 +103,7 @@ async def auto_match_movie_item(
         return False
 
     meta = await provider.fetch("movie", chosen.provider_id, lang)
+    assert isinstance(meta, MovieMetadata)
     artworks = await provider.artwork("movie", chosen.provider_id)
 
     provider_ids = {"tmdb": chosen.provider_id}

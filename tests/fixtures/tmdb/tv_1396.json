@@ -1,0 +1,46 @@
+{
+  "id": 1396,
+  "name": "Breaking Bad",
+  "original_name": "Breaking Bad",
+  "first_air_date": "2008-01-20",
+  "status": "Ended",
+  "tagline": "Change the equation.",
+  "overview": "A chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine.",
+  "vote_average": 8.9,
+  "vote_count": 13500,
+  "genres": [
+    {"id": 18, "name": "Drama"},
+    {"id": 80, "name": "Crime"}
+  ],
+  "networks": [
+    {"id": 174, "name": "AMC"}
+  ],
+  "production_countries": [
+    {"iso_3166_1": "US", "name": "United States of America"}
+  ],
+  "seasons": [
+    {"id": 3577, "season_number": 0, "name": "Specials"},
+    {"id": 3572, "season_number": 1, "name": "Season 1"},
+    {"id": 3573, "season_number": 2, "name": "Season 2"}
+  ],
+  "external_ids": {
+    "imdb_id": "tt0903747",
+    "tvdb_id": 81189
+  },
+  "content_ratings": {
+    "results": [
+      {"iso_3166_1": "US", "rating": "TV-MA"}
+    ]
+  },
+  "credits": {
+    "cast": [
+      {
+        "id": 17419,
+        "name": "Bryan Cranston",
+        "character": "Walter White",
+        "order": 0,
+        "profile_path": "/7Jahy5LZX2Fo8fGJltMreAI49hC.jpg"
+      }
+    ]
+  }
+}
