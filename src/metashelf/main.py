@@ -8,6 +8,11 @@ from pydantic import BaseModel
 
 from metashelf import __version__
 from metashelf.config import Settings, get_settings
+from metashelf.db.session import (
+    create_async_engine_with_wal,
+    create_session_factory,
+    run_migrations,
+)
 
 
 class HealthResponse(BaseModel):
@@ -23,7 +28,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     settings.config_dir.mkdir(parents=True, exist_ok=True)
     settings.thumbnails_dir.mkdir(parents=True, exist_ok=True)
-    yield
+    run_migrations(settings.resolved_database_url)
+    engine = create_async_engine_with_wal(settings.resolved_database_url)
+    app.state.engine = engine
+    app.state.session_factory = create_session_factory(engine)
+    try:
+        yield
+    finally:
+        await engine.dispose()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
