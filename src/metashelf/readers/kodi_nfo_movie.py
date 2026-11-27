@@ -89,7 +89,9 @@ def read_movie_nfo(path: Path) -> ParsedMovieNfo:
     # Ratings: prefer <ratings><rating ...> then fallback to <rating>/<votes>
     ratings_el = root.find("ratings")
     if ratings_el is not None:
-        chosen = ratings_el.find("rating[@default='true']") or ratings_el.find("rating")
+        chosen = ratings_el.find("rating[@default='true']")
+        if chosen is None:
+            chosen = ratings_el.find("rating")
         if chosen is not None:
             meta.rating = _float_or_none(_text(chosen.find("value")))
             meta.votes = _int_or_none(_text(chosen.find("votes")))

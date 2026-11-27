@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<movie>
+  <title>Inception</title>
+  <originaltitle>Inception</originaltitle>
+  <sorttitle>Inception</sorttitle>
+  <ratings>
+    <rating name="tmdb" max="10" default="true">
+      <value>8.37</value>
+      <votes>35000</votes>
+    </rating>
+  </ratings>
+  <year>2010</year>
+  <premiered>2010-07-15</premiered>
+  <outline>Cobb, a skilled thief who commits corporate espionage.</outline>
+  <plot>Cobb, a skilled thief who commits corporate espionage.</plot>
+  <tagline>Your mind is the scene of the crime.</tagline>
+  <runtime>148</runtime>
+  <mpaa>PG-13</mpaa>
+  <uniqueid type="tmdb" default="true">27205</uniqueid>
+  <uniqueid type="imdb" default="false">tt1375666</uniqueid>
+  <genre>Action</genre>
+  <genre>Science Fiction</genre>
+  <country>United States of America</country>
+  <studio>Legendary Pictures</studio>
+  <director>Christopher Nolan</director>
+  <credits>Christopher Nolan</credits>
+  <tag>Heist</tag>
+  <actor>
+    <name>Leonardo DiCaprio</name>
+    <role>Dom Cobb</role>
+    <order>0</order>
+    <thumb>https://image.tmdb.org/t/p/w185/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg</thumb>
+  </actor>
+  <playcount>3</playcount>
+  <dateadded>2025-01-15 12:00:00</dateadded>
+</movie>
