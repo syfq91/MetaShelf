@@ -51,3 +51,32 @@ Source: Official fanart.tv API v3 (`fanarttv.docs.apiary.io`), verified 2026-11-
 - **Base URL**: `https://webservice.fanart.tv/v3/tv/{tvdb_id}`
 - **Authentication**: `api_key` query param or `api-key` header (plus optional `client-key`).
 - **TV Image Arrays**: `tvposter` (`poster`), `showbackground` (`fanart`), `tvbanner` (`banner`), `hdtvlogo` / `clearlogo` (`logo`), `seasonposter` (with `season` field).
+
+---
+
+## MusicBrainz API v2
+
+Source: Official MusicBrainz WS/2 documentation (`musicbrainz.org/doc/MusicBrainz_API`), verified 2026-11-27.
+
+- **Base URL**: `https://musicbrainz.org/ws/2`
+- **Format**: `fmt=json` query parameter (or `Accept: application/json`).
+- **Authentication**: None (no API key), but a **descriptive `User-Agent` header** is mandatory (e.g. `MetaShelf/0.1.0 (https://github.com/syfq91/MetaShelf)`), otherwise requests receive `403`/`503`.
+- **Rate Limit**: Strict **1 request per second** per IP (`AsyncRateLimiter(calls_per_second=1.0)`).
+- **Endpoints Used**:
+  - `GET /ws/2/artist?query=...&fmt=json` -> `artists[]` (`id`, `name`, `sort-name`, `type`, `disambiguation`, `life-span`, `tags[]`)
+  - `GET /ws/2/artist/{mbid}?inc=release-groups+tags&fmt=json`
+  - `GET /ws/2/release?query=...&fmt=json` -> `releases[]` (`id`, `title`, `date`, `country`, `track-count`, `media[].track-count`, `release-group.id`, `artist-credit[]`, `label-info[]`)
+  - `GET /ws/2/release/{mbid}?inc=recordings+artists+release-groups+labels+tags&fmt=json` -> `media[].tracks[]` (`position`, `title`, `length`)
+
+---
+
+## Cover Art Archive API
+
+Source: Official Cover Art Archive documentation (`coverartarchive.org`), verified 2026-11-27.
+
+- **Base URL**: `https://coverartarchive.org`
+- **Authentication**: None required.
+- **Redirects**: Endpoints return `307 Temporary Redirect` to Internet Archive storage; HTTP client must follow redirects when fetching JSON/images.
+- **Endpoints Used**:
+  - `GET /release/{mbid}` -> `images[]` (`front`, `back`, `types[]`, `image`, `thumbnails.500` / `thumbnails.1200`)
+  - `GET /release-group/{mbid}` -> fallback if release has no cover art.
