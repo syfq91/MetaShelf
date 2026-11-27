@@ -1,0 +1,38 @@
+<div class="p-3 border-t border-base-300 bg-base-200/70 space-y-2 text-xs">
+  <div class="flex items-center justify-between">
+    <span class="font-semibold">
+      {% if result.dry_run %}
+        Dry-run preview ({{ result.action }}): {{ result.previews | length }} item(s)
+      {% else %}
+        Batch {{ result.action }}: Applied to {{ result.applied_count }} item(s)
+        {% if result.skipped_count %}, skipped {{ result.skipped_count }}{% endif %}
+      {% endif %}
+    </span>
+    <button type="button" class="btn btn-ghost btn-xs" onclick="this.closest('#batch-preview-box').innerHTML=''">Close</button>
+  </div>
+
+  {% if result.errors %}
+    <div class="alert alert-error py-1 px-2 text-xs">
+      <span>{{ result.errors | join('; ') }}</span>
+    </div>
+  {% endif %}
+
+  {% if result.previews %}
+    <div class="max-h-48 overflow-y-auto space-y-2">
+      {% for p in result.previews %}
+        <div class="bg-base-100 rounded p-2 border border-base-300">
+          <div class="flex items-center justify-between font-medium">
+            <span>{{ p.title }}</span>
+            <span class="badge badge-xs {% if p.has_changes %}badge-info{% else %}badge-ghost{% endif %}">{{ p.status }}</span>
+          </div>
+          <div class="opacity-60 truncate">{{ p.target_path }}</div>
+          {% if p.diff_text %}
+            <pre class="mt-1 p-1.5 bg-base-200 rounded overflow-x-auto text-[11px] leading-tight whitespace-pre-wrap">{{ p.diff_text }}</pre>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="opacity-60">No items selected.</p>
+  {% endif %}
+</div>

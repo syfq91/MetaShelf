@@ -26,6 +26,7 @@ from metashelf.providers.opensubtitles import OpenSubtitlesProvider, compute_ope
 from metashelf.providers.tmdb import TMDBProvider
 from metashelf.scanner.movie import find_movie_nfo
 from metashelf.scanner.parser import parse_movie_filename
+from metashelf.services.batch import execute_batch_action
 from metashelf.services.movie_save import (
     resolve_movie_artwork_target,
     revert_movie_from_disk,
@@ -176,6 +177,36 @@ async def movies_index(
             **nav_ctx,
             **detail_ctx,
         },
+    )
+
+
+@router.post("/batch", response_class=HTMLResponse, dependencies=[Depends(require_csrf)])
+async def movies_batch_action(
+    request: Request,
+    _user: CurrentUser,
+    session: DbSession,
+    item_ids: Annotated[list[int] | None, Form()] = None,
+    action: Annotated[str, Form()] = "save",
+    dry_run: Annotated[str, Form()] = "true",
+) -> HTMLResponse:
+    """Preview or execute a batch action over selected movie items."""
+    is_dry_run = dry_run.lower() in {"true", "1", "yes", "on"}
+    naming_scheme = await get_setting_value(session, SETTING_MOVIE_NAMING, "file")
+    tmdb_key = await get_setting_value(session, SETTING_TMDB_KEY, "")
+    lang = await get_setting_value(session, SETTING_LANGUAGE, "en-US")
+    result = await execute_batch_action(
+        session,
+        item_ids=item_ids or [],
+        action=action,
+        dry_run=is_dry_run,
+        naming_scheme=naming_scheme,
+        tmdb_api_key=tmdb_key,
+        lang=lang,
+    )
+    return render_template(
+        request,
+        "movies/_batch_preview.html",
+        {"result": result},
     )
 
 
