@@ -1,0 +1,18 @@
+{
+  "id": "rel-discovery-14",
+  "title": "Discovery",
+  "date": "2001-03-12",
+  "release-group": {"id": "rg-discovery", "primary-type": "Album"},
+  "artist-credit": [{"name": "Daft Punk", "artist": {"id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56"}}],
+  "label-info": [{"label": {"name": "Virgin"}}],
+  "tags": [{"name": "electronic", "count": 20}, {"name": "house", "count": 15}],
+  "media": [
+    {
+      "position": 1,
+      "tracks": [
+        {"position": 1, "title": "One More Time", "length": 320000},
+        {"position": 2, "title": "Aerodynamic", "length": 207000}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "releases": [
+    {
+      "id": "rel-discovery-14",
+      "title": "Discovery",
+      "date": "2001-03-12",
+      "country": "FR",
+      "track-count": 14,
+      "release-group": {"id": "rg-discovery", "primary-type": "Album"},
+      "artist-credit": [{"name": "Daft Punk", "artist": {"id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56"}}],
+      "label-info": [{"label": {"name": "Virgin"}}]
+    },
+    {
+      "id": "rel-discovery-15",
+      "title": "Discovery",
+      "date": "2001-03-12",
+      "country": "JP",
+      "track-count": 15,
+      "release-group": {"id": "rg-discovery", "primary-type": "Album"},
+      "artist-credit": [{"name": "Daft Punk", "artist": {"id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56"}}],
+      "label-info": [{"label": {"name": "Virgin Japan"}}]
+    }
+  ]
+}

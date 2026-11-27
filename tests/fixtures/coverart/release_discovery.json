@@ -1,0 +1,14 @@
+{
+  "images": [
+    {
+      "types": ["Front"],
+      "front": true,
+      "back": false,
+      "image": "https://archive.org/download/mbid-rel-discovery-14/front.jpg",
+      "thumbnails": {
+        "500": "https://archive.org/download/mbid-rel-discovery-14/front-500.jpg"
+      }
+    }
+  ],
+  "release": "https://musicbrainz.org/release/rel-discovery-14"
+}

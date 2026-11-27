@@ -50,12 +50,15 @@ async def download_artwork(
     http_client: httpx.AsyncClient,
     url: str,
     target: Path,
+    allow_redirects: bool = False,
 ) -> DownloadedArtwork:
     """Download, validate, and atomically save artwork to target."""
     validate_artwork_url(url)
 
     try:
-        resp = await http_client.get(url, timeout=30.0, follow_redirects=False)
+        resp = await http_client.get(url, timeout=30.0, follow_redirects=allow_redirects)
+        if allow_redirects:
+            validate_artwork_url(str(resp.url))
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         raise ArtworkDownloadError(f"Failed to download artwork from {url}: {exc}") from exc
