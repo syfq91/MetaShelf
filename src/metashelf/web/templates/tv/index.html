@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}TV Shows — MetaShelf{% endblock %}
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
+  <!-- Left Pane: Shows List -->
+  <section class="w-full lg:w-80 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
+    <div class="p-3 border-b border-base-300">
+      <h1 class="font-bold text-base">TV Shows</h1>
+    </div>
+    <div class="flex-1 overflow-y-auto divide-y divide-base-200">
+      {% for s in shows %}
+      <div class="px-3 py-2 hover:bg-base-200 cursor-pointer flex items-center justify-between gap-2 {% if show_item and show_item.id == s.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+           hx-get="{{ base_url }}/tv/{{ s.id }}"
+           hx-target="#tv-detail-pane"
+           hx-swap="innerHTML">
+        <div class="min-w-0">
+          <div class="font-medium text-sm truncate">{{ s.title }}</div>
+          <div class="text-xs opacity-60">{{ s.year or "—" }} · {{ s.state }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="p-4 text-xs opacity-60 text-center">No TV shows scanned yet.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Right Pane: Tree + Detail Editor -->
+  <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="tv-detail-pane">
+    {% if selected_item %}
+      {% include "tv/_detail.html" %}
+    {% else %}
+      <div class="p-8 text-center opacity-60">
+        <p class="text-lg font-medium">No TV shows found</p>
+        <p class="text-sm mt-1">Add a TV library in Settings and run a scan.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

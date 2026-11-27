@@ -1,0 +1,44 @@
+<dialog class="modal modal-open" id="tv-scrape-modal">
+  <div class="modal-box max-w-2xl">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg">Match TV Show (TMDB)</h3>
+      <button type="button" class="btn btn-sm btn-circle btn-ghost"
+              onclick="document.getElementById('modal-container').innerHTML=''">✕</button>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error text-sm py-2 mb-3">{{ error }}</div>
+    {% endif %}
+
+    <form hx-post="{{ base_url }}/tv/{{ show.id }}/scrape/search"
+          hx-target="#modal-container"
+          hx-swap="innerHTML"
+          class="flex gap-2 items-end mb-4">
+      <input type="text" name="title" value="{{ query_title }}" required class="input input-bordered input-sm flex-1" />
+      <input type="text" name="year" value="{{ query_year }}" class="input input-bordered input-sm w-24" />
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    </form>
+
+    {% if candidates is not none %}
+    <div class="space-y-2 max-h-80 overflow-y-auto">
+      {% for c in candidates %}
+      <div class="flex items-center justify-between gap-3 p-2 rounded border border-base-300">
+        <div class="min-w-0">
+          <div class="font-medium text-sm">{{ c.title }} ({{ c.year or '—' }})</div>
+          <div class="text-xs opacity-70 line-clamp-2">{{ c.overview }}</div>
+        </div>
+        <form hx-post="{{ base_url }}/tv/{{ show.id }}/scrape/apply"
+              hx-target="#tv-detail-pane"
+              hx-swap="innerHTML"
+              onsubmit="setTimeout(() => { document.getElementById('modal-container').innerHTML=''; }, 100);">
+          <input type="hidden" name="provider_id" value="{{ c.provider_id }}" />
+          <button type="submit" class="btn btn-xs btn-success">Match &amp; Fetch Episodes</button>
+        </form>
+      </div>
+      {% else %}
+      <p class="text-sm opacity-60">No TV shows found.</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</dialog>

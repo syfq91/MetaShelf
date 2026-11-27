@@ -19,9 +19,13 @@ from metashelf.db.session import (
     create_session_factory,
     run_migrations,
 )
-from metashelf.jobs.handlers import handle_auto_match, handle_scan_library
+from metashelf.jobs.handlers import (
+    handle_auto_match,
+    handle_fetch_show_episodes,
+    handle_scan_library,
+)
 from metashelf.jobs.queue import JobWorker
-from metashelf.web.routers import auth, jobs, movies, pages
+from metashelf.web.routers import auth, jobs, movies, pages, tv
 from metashelf.web.routers import settings as settings_router
 
 
@@ -53,6 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         handlers={
             "scan_library": handle_scan_library,
             "auto_match": handle_auto_match,
+            "fetch_show_episodes": handle_fetch_show_episodes,
         },
     )
     app.state.job_worker = worker
@@ -90,6 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(pages.router)
     app.include_router(movies.router)
+    app.include_router(tv.router)
     app.include_router(jobs.router)
     app.include_router(settings_router.router)
 
