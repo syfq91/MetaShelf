@@ -88,5 +88,26 @@
       </form>
     </div>
   </section>
+
+  <!-- Backup / Export & Import -->
+  <section class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="card-body">
+      <h2 class="card-title text-lg">Backup &amp; Restore</h2>
+      <div class="flex flex-wrap items-center gap-3">
+        <a href="{{ base_url }}/settings/export" class="btn btn-outline btn-sm">Export Settings JSON</a>
+      </div>
+      <form hx-post="{{ base_url }}/settings/import"
+            hx-target="#import-result"
+            hx-swap="innerHTML"
+            enctype="multipart/form-data"
+            class="mt-3 space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="file" name="file" accept=".json,application/json" class="file-input file-input-bordered file-input-sm" />
+          <button type="submit" class="btn btn-primary btn-sm">Import Settings</button>
+        </div>
+        <div id="import-result"></div>
+      </form>
+    </div>
+  </section>
 </div>
 {% endblock %}

@@ -1,10 +1,11 @@
 """Settings and library CRUD routes."""
 
+import html
 import json
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Form, Query, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile, status
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +22,7 @@ from metashelf.services.paths import (
     list_allowed_directories,
     resolve_within_roots,
 )
+from metashelf.services.settings_backup import export_settings_bundle, import_settings_bundle
 from metashelf.web.templating import get_nav_context, render_template
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -282,3 +284,54 @@ async def save_preferences(
         await set_setting_value(session, SETTING_MOVIE_NAMING, movie_naming)
     await session.commit()
     return HTMLResponse('<div class="alert alert-success text-sm py-2">Preferences saved.</div>')
+
+
+@router.get("/export")
+async def export_settings(
+    _user: CurrentUser,
+    session: DbSession,
+) -> JSONResponse:
+    """Export settings and library definitions as JSON."""
+    bundle = await export_settings_bundle(session)
+    return JSONResponse(
+        content=bundle,
+        headers={"Content-Disposition": 'attachment; filename="metashelf-settings.json"'},
+    )
+
+
+@router.post(
+    "/import",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def import_settings(
+    request: Request,
+    _user: CurrentUser,
+    session: DbSession,
+    file: Annotated[UploadFile | None, File()] = None,
+    payload: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """Import settings and library definitions from JSON upload or form payload."""
+    raw_text = payload.strip()
+    if file is not None and file.filename:
+        raw_bytes = await file.read()
+        raw_text = raw_bytes.decode("utf-8", errors="replace").strip()
+    if not raw_text:
+        return HTMLResponse(
+            '<div class="alert alert-error text-sm py-2">No JSON payload provided.</div>',
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        bundle = json.loads(raw_text)
+        allowed_roots = request.app.state.settings.media_root_paths
+        libs_count, settings_count = await import_settings_bundle(session, bundle, allowed_roots)
+    except (json.JSONDecodeError, ValueError, KeyError, PathTraversalError) as exc:
+        return HTMLResponse(
+            f'<div class="alert alert-error text-sm py-2">{html.escape(str(exc))}</div>',
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    return HTMLResponse(
+        f'<div class="alert alert-success text-sm py-2">'
+        f"Imported {libs_count} library(ies) and {settings_count} setting(s)."
+        f"</div>"
+    )
