@@ -1,7 +1,7 @@
 """Settings and library CRUD routes."""
 
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Form, Query, Request, status
 from fastapi.responses import HTMLResponse
@@ -11,6 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from metashelf.auth.deps import CurrentUser, DbSession, require_csrf
 from metashelf.db.models import Library, Setting
 from metashelf.domain.models import LibraryType
+from metashelf.services.library_prefs import (
+    LibraryPreferences,
+    get_library_prefs,
+    set_library_prefs,
+)
 from metashelf.services.paths import (
     PathTraversalError,
     list_allowed_directories,
@@ -200,6 +205,61 @@ async def delete_library(
         await session.commit()
     lib_ctx = await _libraries_context(session)
     return render_template(request, "settings/_libraries.html", lib_ctx)
+
+
+@router.get("/libraries/{library_id}/prefs", response_class=HTMLResponse)
+async def get_library_prefs_form(
+    request: Request,
+    _user: CurrentUser,
+    session: DbSession,
+    library_id: int,
+) -> HTMLResponse:
+    """Render per-library preferences form."""
+    lib = await session.get(Library, library_id)
+    if lib is None:
+        return HTMLResponse("Library not found", status_code=status.HTTP_404_NOT_FOUND)
+    prefs = await get_library_prefs(session, library_id)
+    return render_template(
+        request,
+        "settings/_library_prefs.html",
+        {"library": lib, "prefs": prefs, "saved": False},
+    )
+
+
+@router.post(
+    "/libraries/{library_id}/prefs",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def save_library_prefs_form(
+    request: Request,
+    _user: CurrentUser,
+    session: DbSession,
+    library_id: int,
+    naming_scheme: Annotated[str, Form()] = "file",
+    language: Annotated[str, Form()] = "en-US",
+    max_posters: Annotated[int, Form(ge=1, le=50)] = 3,
+    max_fanart: Annotated[int, Form(ge=1, le=50)] = 3,
+) -> HTMLResponse:
+    """Save per-library preferences."""
+    lib = await session.get(Library, library_id)
+    if lib is None:
+        return HTMLResponse("Library not found", status_code=status.HTTP_404_NOT_FOUND)
+    scheme: Literal["file", "movie_nfo"] = (
+        "movie_nfo" if naming_scheme == "movie_nfo" else "file"
+    )
+    prefs = LibraryPreferences(
+        naming_scheme=scheme,
+        language=language.strip() or "en-US",
+        max_posters=max_posters,
+        max_fanart=max_fanart,
+    )
+    await set_library_prefs(session, library_id, prefs)
+    return render_template(
+        request,
+        "settings/_library_prefs.html",
+        {"library": lib, "prefs": prefs, "saved": True},
+    )
 
 
 @router.post(

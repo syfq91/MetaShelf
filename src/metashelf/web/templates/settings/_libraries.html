@@ -41,6 +41,12 @@
             Auto-Match
           </button>
           <button type="button" class="btn btn-xs btn-ghost"
+                  hx-get="{{ base_url }}/settings/libraries/{{ lib.id }}/prefs"
+                  hx-target="#library-prefs-panel"
+                  hx-swap="innerHTML">
+            Prefs
+          </button>
+          <button type="button" class="btn btn-xs btn-ghost"
                   hx-post="{{ base_url }}/settings/libraries/{{ lib.id }}/toggle"
                   hx-target="#libraries-list"
                   hx-swap="innerHTML">
@@ -59,6 +65,7 @@
     </tbody>
   </table>
 </div>
+<div id="library-prefs-panel"></div>
 {% else %}
 <p class="text-sm opacity-60">No libraries configured yet.</p>
 {% endif %}

@@ -1,0 +1,36 @@
+<div class="card bg-base-200/60 border border-base-300 p-4 mt-4">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="font-semibold text-sm">Preferences for {{ library.name }}</h3>
+    {% if saved %}
+      <span class="badge badge-success badge-xs">Saved</span>
+    {% endif %}
+  </div>
+  <form hx-post="{{ base_url }}/settings/libraries/{{ library.id }}/prefs"
+        hx-target="#library-prefs-panel"
+        hx-swap="innerHTML"
+        class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+    <label class="form-control">
+      <span class="label-text text-xs">Sidecar Naming</span>
+      <select name="naming_scheme" class="select select-bordered select-sm">
+        <option value="file" {% if prefs.naming_scheme == 'file' %}selected{% endif %}>&lt;filename&gt;.nfo</option>
+        <option value="movie_nfo" {% if prefs.naming_scheme == 'movie_nfo' %}selected{% endif %}>movie.nfo</option>
+      </select>
+    </label>
+    <label class="form-control">
+      <span class="label-text text-xs">Language</span>
+      <input type="text" name="language" value="{{ prefs.language }}" class="input input-bordered input-sm" />
+    </label>
+    <label class="form-control">
+      <span class="label-text text-xs">Max Posters</span>
+      <input type="number" name="max_posters" min="1" max="50" value="{{ prefs.max_posters }}" class="input input-bordered input-sm" />
+    </label>
+    <label class="form-control">
+      <span class="label-text text-xs">Max Fanart</span>
+      <input type="number" name="max_fanart" min="1" max="50" value="{{ prefs.max_fanart }}" class="input input-bordered input-sm" />
+    </label>
+    <div class="md:col-span-4 flex justify-end gap-2">
+      <button type="button" class="btn btn-ghost btn-xs" onclick="this.closest('#library-prefs-panel').innerHTML=''">Close</button>
+      <button type="submit" class="btn btn-primary btn-xs">Save Library Preferences</button>
+    </div>
+  </form>
+</div>
