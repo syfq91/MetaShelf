@@ -1,5 +1,6 @@
 """Filename parsing using guessit."""
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -101,3 +102,61 @@ def parse_tv_episode_filename(rel_path: str) -> ParsedEpisodeName:
         episodes=sorted(episodes),
         year=year,
     )
+
+
+@dataclass
+class ParsedComicName:
+    """Parsed comic series, issue number, volume, and year."""
+
+    series: str
+    number: str = ""
+    volume: int | None = None
+    year: int | None = None
+
+
+_COMIC_YEAR_RE = re.compile(r"\((\d{4})\)")
+_COMIC_VOL_RE = re.compile(r"(?:\bvol\.?\s*|\bv)(\d+)\b", re.IGNORECASE)
+_COMIC_HASH_ISSUE_RE = re.compile(r"#(\d+(?:\.\d+)?)\b")
+_COMIC_NUM_ISSUE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*$")
+
+
+def _normalize_issue_num(raw: str) -> str:
+    if "." in raw:
+        left, right = raw.split(".", 1)
+        return f"{int(left)}.{right}"
+    return str(int(raw))
+
+
+def parse_comic_filename(rel_path: str) -> ParsedComicName:
+    """Parse series, issue number, volume, and year from a CBZ relative path."""
+    p = Path(rel_path)
+    stem = p.stem
+
+    year: int | None = None
+    m_year = _COMIC_YEAR_RE.search(stem)
+    if m_year:
+        year = int(m_year.group(1))
+        stem = stem[: m_year.start()].strip() + " " + stem[m_year.end() :].strip()
+        stem = stem.strip()
+
+    volume: int | None = None
+    m_vol = _COMIC_VOL_RE.search(stem)
+    if m_vol:
+        volume = int(m_vol.group(1))
+        stem = (stem[: m_vol.start()] + " " + stem[m_vol.end() :]).strip()
+
+    number = ""
+    m_hash = _COMIC_HASH_ISSUE_RE.search(stem)
+    if m_hash:
+        number = _normalize_issue_num(m_hash.group(1))
+        stem = stem[: m_hash.start()].strip()
+    else:
+        m_num = _COMIC_NUM_ISSUE_RE.search(stem)
+        if m_num:
+            number = _normalize_issue_num(m_num.group(1))
+            stem = stem[: m_num.start()].strip()
+
+    series = stem.strip(" -_")
+    if not series and len(p.parts) >= 2:
+        series = p.parts[0]
+    return ParsedComicName(series=series, number=number, volume=volume, year=year)

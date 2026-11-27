@@ -219,6 +219,33 @@ class EbookMetadata(BaseModel):
     googlebooks_id: str = ""
 
 
+class ComicMetadata(BaseModel):
+    """Canonical normalized metadata for a comic issue (CBZ / ComicInfo.xml)."""
+
+    title: str = ""
+    series: str = ""
+    number: str = ""  # Issue number string (e.g. "1", "1.5")
+    volume: int | None = None
+    year: int | None = None
+    month: int | None = None
+    day: int | None = None
+    publisher: str = ""
+    summary: str = ""
+    writers: list[str] = Field(default_factory=list)
+    artists: list[str] = Field(default_factory=list)  # Penciller / Inker / CoverArtist
+    pencillers: list[str] = Field(default_factory=list)
+    inkers: list[str] = Field(default_factory=list)
+    colorists: list[str] = Field(default_factory=list)
+    letterers: list[str] = Field(default_factory=list)
+    cover_artists: list[str] = Field(default_factory=list)
+    editors: list[str] = Field(default_factory=list)
+    genres: list[str] = Field(default_factory=list)
+    page_count: int | None = None
+    web: str = ""
+    comicvine_volume_id: str = ""
+    comicvine_issue_id: str = ""
+
+
 NormalizedMetadata = (
     MovieMetadata
     | ShowMetadata
@@ -228,4 +255,5 @@ NormalizedMetadata = (
     | AlbumMetadata
     | TrackMetadata
     | EbookMetadata
+    | ComicMetadata
 )
