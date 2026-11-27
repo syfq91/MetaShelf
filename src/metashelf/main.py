@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     settings.config_dir.mkdir(parents=True, exist_ok=True)
     settings.thumbnails_dir.mkdir(parents=True, exist_ok=True)
+    settings.ensure_secret_key()
     run_migrations(settings.resolved_database_url)
     engine = create_async_engine_with_wal(settings.resolved_database_url)
     session_factory = create_session_factory(engine)

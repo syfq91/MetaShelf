@@ -1,10 +1,18 @@
 """Application configuration loaded from environment variables and config dir."""
 
+import os
+import secrets
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_PLACEHOLDER_SECRETS = {
+    "",
+    "dev-insecure-secret-change-me",
+    "change-me-to-a-long-random-string",
+}
 
 
 class Settings(BaseSettings):
@@ -17,7 +25,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    secret_key: str = "dev-insecure-secret-change-me"
+    secret_key: str = ""
     config_dir: Path = Path("/config")
     media_roots: str = "/media"
     base_url: str = ""
@@ -53,6 +61,26 @@ class Settings(BaseSettings):
     @property
     def thumbnails_dir(self) -> Path:
         return self.config_dir / "thumbnails"
+
+    def ensure_secret_key(self) -> str:
+        """Return configured secret key, or auto-generate and persist one in config_dir."""
+        cleaned = self.secret_key.strip()
+        if cleaned not in _PLACEHOLDER_SECRETS:
+            return cleaned
+
+        key_file = self.config_dir / ".secret_key"
+        if key_file.exists():
+            stored = key_file.read_text(encoding="utf-8").strip()
+            if stored:
+                self.secret_key = stored
+                return stored
+
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        generated = secrets.token_urlsafe(48)
+        key_file.write_text(generated, encoding="utf-8")
+        os.chmod(key_file, 0o600)
+        self.secret_key = generated
+        return generated
 
 
 @lru_cache(maxsize=1)

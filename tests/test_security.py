@@ -196,3 +196,31 @@ def test_login_rate_limit_enforced(tmp_path: Path) -> None:
             )
             statuses.append(resp.status_code)
         assert 429 in statuses
+
+
+def test_secret_key_auto_generated_and_persisted(tmp_path: Path) -> None:
+    media_root = tmp_path / "media"
+    media_root.mkdir()
+    config_dir = tmp_path / "config"
+
+    app1 = create_app(settings=Settings(config_dir=config_dir, media_roots=str(media_root)))
+    with TestClient(app1):
+        first_key = app1.state.settings.secret_key
+        assert len(first_key) >= 32
+        assert (config_dir / ".secret_key").read_text(encoding="utf-8").strip() == first_key
+
+    # Second startup reuses the persisted key
+    app2 = create_app(settings=Settings(config_dir=config_dir, media_roots=str(media_root)))
+    with TestClient(app2):
+        assert app2.state.settings.secret_key == first_key
+
+    # Explicit key overrides auto-generation
+    app3 = create_app(
+        settings=Settings(
+            config_dir=config_dir,
+            media_roots=str(media_root),
+            secret_key="explicit-user-secret",
+        )
+    )
+    with TestClient(app3):
+        assert app3.state.settings.secret_key == "explicit-user-secret"

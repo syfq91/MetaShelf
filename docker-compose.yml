@@ -1,19 +1,19 @@
 services:
   metashelf:
-    build: .
-    image: metashelf:latest
+    image: ghcr.io/syfq91/metashelf:latest
     container_name: metashelf
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
-      - TZ=${TZ:-UTC}
-      - METASHELF_SECRET_KEY=${METASHELF_SECRET_KEY:-change-me-to-a-long-random-string}
-      - METASHELF_CONFIG_DIR=/config
-      - METASHELF_MEDIA_ROOTS=/media/movies,/media/tv,/media/music,/media/ebooks,/media/comics
-      - METASHELF_TMDB_API_KEY=${METASHELF_TMDB_API_KEY:-}
+      PUID: "1000"
+      PGID: "1000"
+      TZ: UTC
+      METASHELF_CONFIG_DIR: /config
+      METASHELF_MEDIA_ROOTS: /media/movies,/media/tv,/media/music,/media/ebooks,/media/comics
+      METASHELF_BASE_URL: ""
+      METASHELF_LOG_LEVEL: INFO
+      METASHELF_TMDB_API_KEY: ""
     volumes:
       - ./config:/config
       - ./media/movies:/media/movies

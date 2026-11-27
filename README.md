@@ -18,9 +18,8 @@ Self-hosted metadata manager for **movies**, **TV shows**, **music**, **ebooks (
 ## Quick Start (Docker)
 
 ```bash
-cp .env.example .env
-# Edit .env and set METASHELF_SECRET_KEY (and any provider API keys)
-docker compose up --build
+# Edit environment variables in docker-compose.yml (especially METASHELF_SECRET_KEY)
+docker compose up -d
 ```
 
 Then open `http://localhost:8000` to create your admin account.
@@ -29,7 +28,7 @@ Then open `http://localhost:8000` to create your admin account.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `METASHELF_SECRET_KEY` | *(required in prod)* | Session & CSRF signing secret |
+| `METASHELF_SECRET_KEY` | *(auto-generated)* | Session & CSRF signing secret (auto-generated in `/config/.secret_key` on first run if omitted) |
 | `METASHELF_CONFIG_DIR` | `/config` | SQLite database and thumbnails directory |
 | `METASHELF_MEDIA_ROOTS` | `/media` | Comma-separated allowed media root paths |
 | `METASHELF_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
