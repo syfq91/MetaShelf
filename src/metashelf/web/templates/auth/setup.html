@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Setup Admin — MetaShelf{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-12 card bg-base-100 shadow-md border border-base-300">
+  <div class="card-body">
+    <h1 class="card-title text-xl">First-Run Setup</h1>
+    <p class="text-sm opacity-75">Create the administrator account for MetaShelf.</p>
+    {% if error %}
+    <div class="alert alert-error text-sm py-2">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="{{ base_url }}/auth/setup" class="space-y-3 mt-2">
+      <div class="form-control">
+        <label class="label" for="username"><span class="label-text">Username</span></label>
+        <input id="username" name="username" type="text" required minlength="2"
+               value="{{ username | default('admin') }}"
+               class="input input-bordered input-sm w-full" />
+      </div>
+      <div class="form-control">
+        <label class="label" for="password"><span class="label-text">Password</span></label>
+        <input id="password" name="password" type="password" required minlength="8"
+               class="input input-bordered input-sm w-full" />
+      </div>
+      <div class="form-control">
+        <label class="label" for="password_confirm"><span class="label-text">Confirm Password</span></label>
+        <input id="password_confirm" name="password_confirm" type="password" required minlength="8"
+               class="input input-bordered input-sm w-full" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm w-full">Create Account</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
