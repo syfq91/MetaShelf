@@ -201,6 +201,24 @@ class TrackMetadata(BaseModel):
     musicbrainz_recording_id: str = ""
 
 
+class EbookMetadata(BaseModel):
+    """Canonical normalized metadata for an ebook (EPUB/OPF)."""
+
+    title: str = ""
+    authors: list[str] = Field(default_factory=list)
+    isbn: str = ""
+    publisher: str = ""
+    published_date: str = ""  # YYYY or YYYY-MM-DD
+    year: int | None = None
+    language: str = "en"
+    description: str = ""
+    subjects: list[str] = Field(default_factory=list)
+    series: str = ""
+    series_index: str = ""
+    openlibrary_id: str = ""
+    googlebooks_id: str = ""
+
+
 NormalizedMetadata = (
     MovieMetadata
     | ShowMetadata
@@ -209,4 +227,5 @@ NormalizedMetadata = (
     | ArtistMetadata
     | AlbumMetadata
     | TrackMetadata
+    | EbookMetadata
 )
