@@ -10,7 +10,6 @@ services:
       PGID: "1000"
       TZ: UTC
       METASHELF_CONFIG_DIR: /config
-      METASHELF_MEDIA_ROOTS: /media/movies,/media/tv,/media/music,/media/ebooks,/media/comics
       METASHELF_BASE_URL: ""
       METASHELF_LOG_LEVEL: INFO
       METASHELF_TMDB_API_KEY: ""

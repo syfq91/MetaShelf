@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from metashelf.db.models import Library, Setting
 from metashelf.domain.models import LibraryType
-from metashelf.services.paths import resolve_within_roots
 
 
 async def export_settings_bundle(session: AsyncSession) -> dict[str, Any]:
@@ -45,9 +44,8 @@ async def export_settings_bundle(session: AsyncSession) -> dict[str, Any]:
 async def import_settings_bundle(
     session: AsyncSession,
     bundle: dict[str, Any],
-    allowed_roots: list[Path],
 ) -> tuple[int, int]:
-    """Validate and import a settings/libraries bundle, confining paths to `allowed_roots`."""
+    """Validate and import a settings/libraries bundle."""
     if not isinstance(bundle, dict):
         raise ValueError("Settings bundle must be a JSON object.")
 
@@ -61,7 +59,12 @@ async def import_settings_bundle(
         if not isinstance(entry, dict):
             raise ValueError("Each library entry must be an object.")
         lib_type = LibraryType(str(entry["type"]))
-        resolved = resolve_within_roots(Path(str(entry["root_path"])), allowed_roots)
+        raw_root = str(entry["root_path"]).strip()
+        if not raw_root:
+            raise ValueError("Library 'root_path' must not be empty.")
+        resolved = Path(raw_root).resolve()
+        if not resolved.exists() or not resolved.is_dir():
+            raise ValueError(f"Directory does not exist: {resolved}")
         name = str(entry.get("name") or resolved.name).strip() or resolved.name
         enabled = bool(entry.get("enabled", True))
         raw_cron = entry.get("scan_cron")

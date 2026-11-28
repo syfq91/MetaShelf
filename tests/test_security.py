@@ -12,7 +12,7 @@ from PIL import Image
 
 from metashelf.config import Settings
 from metashelf.main import create_app
-from metashelf.services.paths import PathTraversalError, resolve_within_root, resolve_within_roots
+from metashelf.services.paths import PathTraversalError, resolve_within_root
 from metashelf.writers.artwork import (
     MAX_ARTWORK_BYTES,
     ArtworkDownloadError,
@@ -51,35 +51,42 @@ def test_path_traversal_and_symlink_escape(tmp_path: Path) -> None:
     with pytest.raises(PathTraversalError):
         resolve_within_root("../secret.txt", root)
 
-    with pytest.raises(PathTraversalError):
-        resolve_within_roots(outside, [root])
-
     symlink_path = root / "escape.txt"
     symlink_path.symlink_to(outside)
     with pytest.raises(PathTraversalError):
         resolve_within_root("escape.txt", root)
 
 
-def test_http_routes_reject_path_traversal(tmp_path: Path) -> None:
+def test_http_routes_reject_invalid_library_paths(tmp_path: Path) -> None:
     media_root = tmp_path / "media"
     media_root.mkdir()
-    app_settings = Settings(config_dir=tmp_path / "config", media_roots=str(media_root))
+    not_a_dir = tmp_path / "not_a_dir.txt"
+    not_a_dir.write_text("file", encoding="utf-8")
+    missing_dir = tmp_path / "missing"
+    app_settings = Settings(config_dir=tmp_path / "config")
     app = create_app(settings=app_settings)
 
     with TestClient(app) as client:
         csrf = _setup_and_login(client)
         headers = {"X-CSRF-Token": csrf}
 
-        r_lib = client.post(
+        r_missing = client.post(
             "/settings/libraries",
             headers=headers,
-            data={"name": "Escape", "lib_type": "movie", "root_path": "/etc"},
+            data={"name": "Missing", "lib_type": "movie", "root_path": str(missing_dir)},
         )
-        assert r_lib.status_code == 400
+        assert r_missing.status_code == 400
 
-        r_browse = client.get("/settings/dir-picker", params={"path": "/etc"})
+        r_file = client.post(
+            "/settings/libraries",
+            headers=headers,
+            data={"name": "File", "lib_type": "movie", "root_path": str(not_a_dir)},
+        )
+        assert r_file.status_code == 400
+
+        r_browse = client.get("/settings/dir-picker", params={"path": str(missing_dir)})
         assert r_browse.status_code == 200
-        assert "outside configured media roots" in r_browse.text
+        assert "does not exist" in r_browse.text
 
 
 @pytest.mark.parametrize(

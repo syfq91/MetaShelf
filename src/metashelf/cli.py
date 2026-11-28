@@ -67,7 +67,6 @@ def main(argv: list[str] | None = None) -> int:
         help="Drop cached item index and rebuild from filesystem sidecars",
     )
     rebuild_parser.add_argument("--config-dir", type=Path, default=None)
-    rebuild_parser.add_argument("--media-roots", type=str, default=None)
     rebuild_parser.add_argument("--database-url", type=str, default=None)
 
     args = parser.parse_args(argv)
@@ -76,8 +75,6 @@ def main(argv: list[str] | None = None) -> int:
         updates: dict[str, object] = {}
         if args.config_dir is not None:
             updates["config_dir"] = args.config_dir
-        if args.media_roots is not None:
-            updates["media_roots"] = args.media_roots
         if args.database_url is not None:
             updates["database_url"] = args.database_url
         effective = base.model_copy(update=updates) if updates else base

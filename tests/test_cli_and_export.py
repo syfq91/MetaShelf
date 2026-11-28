@@ -30,7 +30,7 @@ def _setup_and_login(client: TestClient) -> str:
     return match.group(1)
 
 
-async def test_settings_export_and_import_rejects_outside_roots(tmp_path: Path) -> None:
+async def test_settings_export_and_import_rejects_missing_dir(tmp_path: Path) -> None:
     media_root = tmp_path / "media"
     movies_dir = media_root / "movies"
     movies_dir.mkdir(parents=True)
@@ -63,12 +63,17 @@ async def test_settings_export_and_import_rejects_outside_roots(tmp_path: Path) 
         assert len(bundle["libraries"]) == 1
         assert bundle["libraries"][0]["name"] == "Movies"
 
-        # Import rejecting path outside media_roots
+        # Import rejecting non-existent directory
         bad_bundle = {
             "version": 1,
             "settings": {"metadata_language": "en-US"},
             "libraries": [
-                {"name": "Evil", "type": "movie", "root_path": "/etc", "enabled": True}
+                {
+                    "name": "Missing",
+                    "type": "movie",
+                    "root_path": str(tmp_path / "does_not_exist"),
+                    "enabled": True,
+                }
             ],
         }
         r_bad = client.post(
@@ -123,8 +128,6 @@ def test_cli_rebuild_index_reconstructs_from_sidecars(tmp_path: Path) -> None:
             "rebuild-index",
             "--config-dir",
             str(config_dir),
-            "--media-roots",
-            str(media_root),
         ]
     )
     assert exit_code == 0

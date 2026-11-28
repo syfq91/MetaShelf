@@ -11,8 +11,7 @@ FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    METASHELF_CONFIG_DIR=/config \
-    METASHELF_MEDIA_ROOTS=/media
+    METASHELF_CONFIG_DIR=/config
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \

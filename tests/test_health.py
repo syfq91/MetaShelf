@@ -22,9 +22,7 @@ def test_settings_env_override(monkeypatch: object, tmp_path: Path) -> None:
     import pytest
 
     assert isinstance(monkeypatch, pytest.MonkeyPatch)
-    monkeypatch.setenv("METASHELF_MEDIA_ROOTS", f"{tmp_path / 'a'}, {tmp_path / 'b'}")
     monkeypatch.setenv("METASHELF_TMDB_API_KEY", "test-key")
     settings = Settings(config_dir=tmp_path)
     assert settings.tmdb_api_key == "test-key"
-    assert settings.media_root_paths == [(tmp_path / "a").resolve(), (tmp_path / "b").resolve()]
     assert settings.resolved_database_url == f"sqlite+aiosqlite:///{tmp_path / 'metashelf.db'}"

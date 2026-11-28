@@ -27,7 +27,6 @@ class Settings(BaseSettings):
 
     secret_key: str = ""
     config_dir: Path = Path("/config")
-    media_roots: str = "/media"
     base_url: str = ""
     log_level: str = "INFO"
     log_format: str = "json"
@@ -48,15 +47,6 @@ class Settings(BaseSettings):
             return self.database_url
         db_path = self.config_dir / "metashelf.db"
         return f"sqlite+aiosqlite:///{db_path}"
-
-    @property
-    def media_root_paths(self) -> list[Path]:
-        roots: list[Path] = []
-        for raw in self.media_roots.split(","):
-            cleaned = raw.strip()
-            if cleaned:
-                roots.append(Path(cleaned).resolve())
-        return roots
 
     @property
     def thumbnails_dir(self) -> Path:

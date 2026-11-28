@@ -13,7 +13,7 @@ Self-hosted metadata manager for **movies**, **TV shows**, **music**, **ebooks (
   - **Subtitles:** OpenSubtitles REST API v1 with movie file hashing and `.srt` sidecars.
 - **Web UI:** FastAPI + HTMX + Tailwind/DaisyUI two-pane library views, manual scrape modal, multi-select batch actions with dry-run diff preview, per-library settings, and settings export/import.
 - **Automation & CLI:** Cron-based scheduled rescans, optional filesystem watcher (`METASHELF_WATCH_ENABLED=true`), and `metashelf rebuild-index` CLI.
-- **Security & Observability:** Session cookie auth with CSRF protection and login rate limiting, path confinement to `METASHELF_MEDIA_ROOTS`, SSRF & Pillow artwork validation, structured JSON logging, `/healthz`, and `/metrics`.
+- **Security & Observability:** Session cookie auth with CSRF protection and login rate limiting, library path traversal confinement, SSRF & Pillow artwork validation, structured JSON logging, `/healthz`, and `/metrics`.
 
 ## Quick Start (Docker)
 
@@ -30,7 +30,6 @@ Then open `http://localhost:8000` to create your admin account.
 | --- | --- | --- |
 | `METASHELF_SECRET_KEY` | *(auto-generated)* | Session & CSRF signing secret (auto-generated in `/config/.secret_key` on first run if omitted) |
 | `METASHELF_CONFIG_DIR` | `/config` | SQLite database and thumbnails directory |
-| `METASHELF_MEDIA_ROOTS` | `/media` | Comma-separated allowed media root paths |
 | `METASHELF_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `METASHELF_LOG_FORMAT` | `json` | `json` or `text` |
 | `METASHELF_WATCH_ENABLED` | `false` | Enable `watchfiles` filesystem watcher |
@@ -41,7 +40,7 @@ Then open `http://localhost:8000` to create your admin account.
 Rebuild the SQLite index from sidecars on disk:
 
 ```bash
-metashelf rebuild-index --config-dir /config --media-roots /media
+metashelf rebuild-index --config-dir /config
 ```
 
 ## Development

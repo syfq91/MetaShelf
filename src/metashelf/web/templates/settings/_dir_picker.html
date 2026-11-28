@@ -3,7 +3,7 @@
   <div class="alert alert-error text-xs py-1 mb-2">{{ error }}</div>
   {% endif %}
   <div class="flex items-center justify-between mb-2">
-    <span class="font-mono text-xs opacity-80">{{ current_path or "Allowed Media Roots" }}</span>
+    <span class="font-mono text-xs opacity-80">{{ current_path or "/" }}</span>
     <div class="space-x-1">
       {% if parent_path %}
       <button type="button" class="btn btn-xs"

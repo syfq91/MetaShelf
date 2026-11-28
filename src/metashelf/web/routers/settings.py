@@ -2,6 +2,7 @@
 
 import html
 import json
+from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile, status
@@ -19,8 +20,7 @@ from metashelf.services.library_prefs import (
 )
 from metashelf.services.paths import (
     PathTraversalError,
-    list_allowed_directories,
-    resolve_within_roots,
+    list_directories,
 )
 from metashelf.services.settings_backup import export_settings_bundle, import_settings_bundle
 from metashelf.web.templating import get_nav_context, render_template
@@ -90,14 +90,13 @@ async def dir_picker(
     _user: CurrentUser,
     path: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
-    """Return an HTMX directory picker fragment restricted to mounted media roots."""
-    roots = request.app.state.settings.media_root_paths
+    """Return an HTMX directory picker fragment for browsing folders."""
     error: str | None = None
     current: str | None = None
     parent: str | None = None
     dirs: list[dict[str, str]] = []
     try:
-        current, parent, dirs = list_allowed_directories(path, roots)
+        current, parent, dirs = list_directories(path)
     except PathTraversalError as exc:
         error = str(exc)
     return render_template(
@@ -125,41 +124,40 @@ async def create_library(
     root_path: Annotated[str, Form()],
     scan_cron: Annotated[str, Form()] = "",
 ) -> HTMLResponse:
-    """Create a new media library inside configured media roots."""
-    roots = request.app.state.settings.media_root_paths
+    """Create a new media library at the selected directory."""
     clean_name = name.strip()
+    clean_root = root_path.strip()
     error: str | None = None
 
     if not clean_name:
         error = "Library name is required."
     elif lib_type not in {t.value for t in LibraryType}:
         error = f"Unsupported library type: {lib_type}"
+    elif not clean_root:
+        error = "Library folder path is required."
     else:
-        try:
-            resolved = resolve_within_roots(root_path.strip(), roots)
-            if not resolved.exists() or not resolved.is_dir():
-                error = f"Directory does not exist: {resolved}"
+        resolved = Path(clean_root).resolve()
+        if not resolved.exists() or not resolved.is_dir():
+            error = f"Directory does not exist: {resolved}"
+        else:
+            existing = (
+                await session.execute(
+                    select(Library).where(Library.root_path == str(resolved))
+                )
+            ).scalar_one_or_none()
+            if existing is not None:
+                error = f"A library already exists for {resolved}."
             else:
-                existing = (
-                    await session.execute(
-                        select(Library).where(Library.root_path == str(resolved))
+                session.add(
+                    Library(
+                        name=clean_name,
+                        type=lib_type,
+                        root_path=str(resolved),
+                        enabled=True,
+                        scan_cron=scan_cron.strip() or None,
                     )
-                ).scalar_one_or_none()
-                if existing is not None:
-                    error = f"A library already exists for {resolved}."
-                else:
-                    session.add(
-                        Library(
-                            name=clean_name,
-                            type=lib_type,
-                            root_path=str(resolved),
-                            enabled=True,
-                            scan_cron=scan_cron.strip() or None,
-                        )
-                    )
-                    await session.commit()
-        except PathTraversalError as exc:
-            error = str(exc)
+                )
+                await session.commit()
 
     lib_ctx = await _libraries_context(session)
     status_code = status.HTTP_400_BAD_REQUEST if error else status.HTTP_200_OK
@@ -323,8 +321,7 @@ async def import_settings(
         )
     try:
         bundle = json.loads(raw_text)
-        allowed_roots = request.app.state.settings.media_root_paths
-        libs_count, settings_count = await import_settings_bundle(session, bundle, allowed_roots)
+        libs_count, settings_count = await import_settings_bundle(session, bundle)
     except (json.JSONDecodeError, ValueError, KeyError, PathTraversalError) as exc:
         return HTMLResponse(
             f'<div class="alert alert-error text-sm py-2">{html.escape(str(exc))}</div>',
