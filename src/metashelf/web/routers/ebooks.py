@@ -1,5 +1,6 @@
 """Ebooks library view, detail editor (series, multiple authors, ISBN), and OPF saving."""
 
+import json
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -11,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from metashelf.auth.deps import CurrentUser, DbSession, require_csrf
 from metashelf.db.models import Artwork, Item, Library
 from metashelf.domain.models import ArtworkType, EbookMetadata, ItemKind, ItemState
+from metashelf.providers.base import ProviderError, SearchQuery
 from metashelf.readers.opf_ebook import read_opf_file
+from metashelf.services.googlebooks_scrape import (
+    get_google_books_provider,
+    save_googlebooks_cover,
+)
 from metashelf.services.paths import PathTraversalError, resolve_within_root
 from metashelf.web.templating import get_nav_context, render_template
 from metashelf.writers.opf_ebook import write_opf
@@ -180,6 +186,151 @@ async def ebook_save(
     await session.commit()
 
     ctx = await _ebook_detail_context(session, item, toast="Saved .opf sidecar to disk.")
+    return render_template(request, "ebooks/_detail.html", ctx)
+
+
+@router.get("/{item_id}/scrape", response_class=HTMLResponse)
+async def ebook_scrape_modal(
+    request: Request,
+    _user: CurrentUser,
+    session: DbSession,
+    item_id: int,
+) -> HTMLResponse:
+    """Open Google Books search modal prefilled from ebook metadata."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.EBOOK.value:
+        raise HTTPException(status_code=404, detail="Ebook not found")
+    meta = EbookMetadata.model_validate_json(item.metadata_json or "{}")
+    base = request.app.state.settings.base_url.rstrip("/")
+    return render_template(
+        request,
+        "partials/_googlebooks_modal.html",
+        {
+            "modal_title": "Search Google Books (Ebook)",
+            "search_url": f"{base}/ebooks/{item.id}/scrape/search",
+            "apply_url": f"{base}/ebooks/{item.id}/scrape/apply",
+            "target_pane": "#ebook-detail-pane",
+            "show_isbn": True,
+            "query_title": meta.title or item.title,
+            "query_author": meta.authors[0] if meta.authors else "",
+            "query_isbn": meta.isbn,
+            "candidates": None,
+            "error": None,
+        },
+    )
+
+
+@router.post(
+    "/{item_id}/scrape/search",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def ebook_scrape_search(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+    title: Annotated[str, Form()],
+    author: Annotated[str, Form()] = "",
+    isbn: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """Search Google Books for ebook candidates."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.EBOOK.value:
+        raise HTTPException(status_code=404, detail="Ebook not found")
+
+    provider = get_google_books_provider(request, session)
+    candidates = []
+    error: str | None = None
+    try:
+        candidates = await provider.search(
+            "ebook",
+            SearchQuery(title=title.strip(), author=author.strip(), isbn=isbn.strip()),
+        )
+        await session.commit()
+    except ProviderError as exc:
+        error = str(exc)
+
+    base = request.app.state.settings.base_url.rstrip("/")
+    return render_template(
+        request,
+        "partials/_googlebooks_modal.html",
+        {
+            "modal_title": "Search Google Books (Ebook)",
+            "search_url": f"{base}/ebooks/{item.id}/scrape/search",
+            "apply_url": f"{base}/ebooks/{item.id}/scrape/apply",
+            "target_pane": "#ebook-detail-pane",
+            "show_isbn": True,
+            "query_title": title.strip(),
+            "query_author": author.strip(),
+            "query_isbn": isbn.strip(),
+            "candidates": candidates,
+            "error": error,
+        },
+    )
+
+
+@router.post(
+    "/{item_id}/scrape/apply",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def ebook_scrape_apply(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+    provider_id: Annotated[str, Form()],
+) -> HTMLResponse:
+    """Fetch ebook metadata and cover from Google Books and stage on item."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.EBOOK.value:
+        raise HTTPException(status_code=404, detail="Ebook not found")
+    library = await session.get(Library, item.library_id)
+    if library is None:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    local_meta = EbookMetadata.model_validate_json(item.metadata_json or "{}")
+    provider = get_google_books_provider(request, session)
+    fetched = await provider.fetch("ebook", provider_id, local_meta.language or "en")
+    assert isinstance(fetched, EbookMetadata)
+
+    if not fetched.authors and local_meta.authors:
+        fetched.authors = local_meta.authors
+    if not fetched.series and local_meta.series:
+        fetched.series = local_meta.series
+        fetched.series_index = local_meta.series_index
+    if not fetched.isbn and local_meta.isbn:
+        fetched.isbn = local_meta.isbn
+    if not fetched.title:
+        fetched.title = local_meta.title or item.title
+
+    root = Path(library.root_path).resolve()
+    epub_path = resolve_within_root(item.rel_path, root)
+    cover_path = epub_path.parent / "cover.jpg"
+    await save_googlebooks_cover(
+        session,
+        request.app.state.http_client,
+        provider,
+        item,
+        "ebook",
+        provider_id,
+        cover_path,
+        root,
+    )
+
+    pids: dict[str, str] = json.loads(item.provider_ids_json or "{}")
+    pids["googlebooks"] = fetched.googlebooks_id or provider_id
+    item.title = fetched.title
+    item.year = fetched.year
+    item.provider_ids_json = json.dumps(pids)
+    item.metadata_json = fetched.model_dump_json()
+    item.state = ItemState.DIRTY.value
+    await session.commit()
+
+    ctx = await _ebook_detail_context(
+        session,
+        item,
+        toast="Applied Google Books metadata. Click Save .opf to write.",
+    )
     return render_template(request, "ebooks/_detail.html", ctx)
 
 

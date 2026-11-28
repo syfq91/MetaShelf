@@ -4,7 +4,12 @@ from typing import Any
 
 import httpx
 
-from metashelf.domain.models import ArtworkType, EbookMetadata, NormalizedMetadata
+from metashelf.domain.models import (
+    ArtworkType,
+    ComicMetadata,
+    EbookMetadata,
+    NormalizedMetadata,
+)
 from metashelf.providers.base import (
     ArtworkCandidate,
     Candidate,
@@ -42,7 +47,7 @@ class GoogleBooksProvider:
     """Google Books v1 async provider (optional API key)."""
 
     id = "googlebooks"
-    media_kinds = {"ebook"}
+    media_kinds = {"ebook", "comic"}
     needs_api_key = False
 
     def __init__(
@@ -87,7 +92,7 @@ class GoogleBooksProvider:
         return data
 
     async def search(self, kind: str, query: SearchQuery) -> list[Candidate]:
-        if kind != "ebook":
+        if kind not in self.media_kinds:
             return []
         if query.isbn:
             q_str = f"isbn:{query.isbn}"
@@ -124,27 +129,40 @@ class GoogleBooksProvider:
         return candidates
 
     async def fetch(self, kind: str, provider_id: str, lang: str = "en") -> NormalizedMetadata:
-        if kind != "ebook":
+        if kind not in self.media_kinds:
             raise ProviderError(f"Unsupported kind '{kind}' for Google Books")
         cache_key = f"gb:volume:{provider_id}"
         data = await self._get_json(f"/volumes/{provider_id}", None, cache_key)
         info = data.get("volumeInfo") or {}
         pub_date = str(info.get("publishedDate") or "")
+        authors = [str(a) for a in info.get("authors", []) if a]
+        categories = [str(c) for c in info.get("categories", []) if c]
+        if kind == "comic":
+            title = str(info.get("title") or "")
+            return ComicMetadata(
+                title=title,
+                series=title,
+                year=_extract_year(pub_date),
+                publisher=str(info.get("publisher") or ""),
+                writers=authors,
+                summary=str(info.get("description") or ""),
+                genres=categories,
+            )
         return EbookMetadata(
             title=str(info.get("title") or ""),
-            authors=[str(a) for a in info.get("authors", []) if a],
+            authors=authors,
             isbn=_extract_isbn(info.get("industryIdentifiers") or []),
             publisher=str(info.get("publisher") or ""),
             published_date=pub_date,
             year=_extract_year(pub_date),
             language=str(info.get("language") or lang),
             description=str(info.get("description") or ""),
-            subjects=[str(c) for c in info.get("categories", []) if c],
+            subjects=categories,
             googlebooks_id=str(data.get("id") or provider_id),
         )
 
     async def artwork(self, kind: str, provider_id: str) -> list[ArtworkCandidate]:
-        if kind != "ebook":
+        if kind not in self.media_kinds:
             return []
         cache_key = f"gb:volume:{provider_id}"
         data = await self._get_json(f"/volumes/{provider_id}", None, cache_key)

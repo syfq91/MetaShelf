@@ -1,5 +1,6 @@
 """Comics library view (series-grouped list), detail editor, and ComicInfo.xml saving."""
 
+import json
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -11,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from metashelf.auth.deps import CurrentUser, DbSession, require_csrf
 from metashelf.db.models import Artwork, Item, Library
 from metashelf.domain.models import ArtworkType, ComicMetadata, ItemKind, ItemState
+from metashelf.providers.base import ProviderError, SearchQuery
 from metashelf.readers.comicinfo_xml import read_comicinfo_file
+from metashelf.services.googlebooks_scrape import (
+    get_google_books_provider,
+    save_googlebooks_cover,
+)
 from metashelf.services.paths import PathTraversalError, resolve_within_root
 from metashelf.web.templating import get_nav_context, render_template
 from metashelf.writers.comicinfo_xml import write_comicinfo_xml
@@ -189,6 +195,149 @@ async def comic_save(
     await session.commit()
 
     ctx = await _comic_detail_context(session, item, toast="Saved ComicInfo XML sidecar to disk.")
+    return render_template(request, "comics/_detail.html", ctx)
+
+
+@router.get("/{item_id}/scrape", response_class=HTMLResponse)
+async def comic_scrape_modal(
+    request: Request,
+    _user: CurrentUser,
+    session: DbSession,
+    item_id: int,
+) -> HTMLResponse:
+    """Open Google Books search modal prefilled from comic metadata."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.COMIC.value:
+        raise HTTPException(status_code=404, detail="Comic not found")
+    meta = ComicMetadata.model_validate_json(item.metadata_json or "{}")
+    base = request.app.state.settings.base_url.rstrip("/")
+    return render_template(
+        request,
+        "partials/_googlebooks_modal.html",
+        {
+            "modal_title": "Search Google Books (Comic)",
+            "search_url": f"{base}/comics/{item.id}/scrape/search",
+            "apply_url": f"{base}/comics/{item.id}/scrape/apply",
+            "target_pane": "#comic-detail-pane",
+            "show_isbn": False,
+            "query_title": meta.series or meta.title or item.title,
+            "query_author": meta.writers[0] if meta.writers else "",
+            "query_isbn": "",
+            "candidates": None,
+            "error": None,
+        },
+    )
+
+
+@router.post(
+    "/{item_id}/scrape/search",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def comic_scrape_search(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+    title: Annotated[str, Form()],
+    author: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """Search Google Books for comic candidates."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.COMIC.value:
+        raise HTTPException(status_code=404, detail="Comic not found")
+
+    provider = get_google_books_provider(request, session)
+    candidates = []
+    error: str | None = None
+    try:
+        candidates = await provider.search(
+            "comic",
+            SearchQuery(title=title.strip(), author=author.strip()),
+        )
+        await session.commit()
+    except ProviderError as exc:
+        error = str(exc)
+
+    base = request.app.state.settings.base_url.rstrip("/")
+    return render_template(
+        request,
+        "partials/_googlebooks_modal.html",
+        {
+            "modal_title": "Search Google Books (Comic)",
+            "search_url": f"{base}/comics/{item.id}/scrape/search",
+            "apply_url": f"{base}/comics/{item.id}/scrape/apply",
+            "target_pane": "#comic-detail-pane",
+            "show_isbn": False,
+            "query_title": title.strip(),
+            "query_author": author.strip(),
+            "query_isbn": "",
+            "candidates": candidates,
+            "error": error,
+        },
+    )
+
+
+@router.post(
+    "/{item_id}/scrape/apply",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def comic_scrape_apply(
+    request: Request,
+    session: DbSession,
+    item_id: int,
+    provider_id: Annotated[str, Form()],
+) -> HTMLResponse:
+    """Fetch comic metadata and cover from Google Books and stage on item."""
+    item = await session.get(Item, item_id)
+    if item is None or item.kind != ItemKind.COMIC.value:
+        raise HTTPException(status_code=404, detail="Comic not found")
+    library = await session.get(Library, item.library_id)
+    if library is None:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    local_meta = ComicMetadata.model_validate_json(item.metadata_json or "{}")
+    provider = get_google_books_provider(request, session)
+    fetched = await provider.fetch("comic", provider_id)
+    assert isinstance(fetched, ComicMetadata)
+
+    if not fetched.number and local_meta.number:
+        fetched.number = local_meta.number
+    if fetched.volume is None and local_meta.volume is not None:
+        fetched.volume = local_meta.volume
+    if not fetched.artists and local_meta.artists:
+        fetched.artists = local_meta.artists
+    if not fetched.title:
+        fetched.title = local_meta.title or item.title
+
+    root = Path(library.root_path).resolve()
+    cbz_path = resolve_within_root(item.rel_path, root)
+    cover_path = cbz_path.with_suffix(".jpg")
+    await save_googlebooks_cover(
+        session,
+        request.app.state.http_client,
+        provider,
+        item,
+        "comic",
+        provider_id,
+        cover_path,
+        root,
+    )
+
+    pids: dict[str, str] = json.loads(item.provider_ids_json or "{}")
+    pids["googlebooks"] = provider_id
+    item.title = fetched.title
+    item.year = fetched.year
+    item.provider_ids_json = json.dumps(pids)
+    item.metadata_json = fetched.model_dump_json()
+    item.state = ItemState.DIRTY.value
+    await session.commit()
+
+    ctx = await _comic_detail_context(
+        session,
+        item,
+        toast="Applied Google Books metadata. Click Save ComicInfo XML to write.",
+    )
     return render_template(request, "comics/_detail.html", ctx)
 
 

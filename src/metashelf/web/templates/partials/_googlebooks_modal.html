@@ -1,0 +1,65 @@
+<dialog class="modal modal-open" id="googlebooks-scrape-modal">
+  <div class="modal-box max-w-2xl">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg">{{ modal_title }}</h3>
+      <button type="button" class="btn btn-sm btn-circle btn-ghost"
+              onclick="document.getElementById('modal-container').innerHTML=''">✕</button>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error text-sm py-2 mb-3">{{ error }}</div>
+    {% endif %}
+
+    <form hx-post="{{ search_url }}"
+          hx-target="#modal-container"
+          hx-swap="innerHTML"
+          class="flex flex-wrap gap-2 items-end mb-4">
+      <input type="text" name="title" value="{{ query_title }}" placeholder="Title" required
+             class="input input-bordered input-sm flex-1 min-w-40" />
+      <input type="text" name="author" value="{{ query_author }}" placeholder="Author / Writer"
+             class="input input-bordered input-sm w-40" />
+      {% if show_isbn %}
+      <input type="text" name="isbn" value="{{ query_isbn }}" placeholder="ISBN"
+             class="input input-bordered input-sm w-36" />
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    </form>
+
+    {% if candidates is not none %}
+    <div class="space-y-2 max-h-80 overflow-y-auto">
+      {% for c in candidates %}
+      <div class="flex items-start justify-between gap-3 p-2 rounded border border-base-300">
+        <div class="flex items-start gap-3 min-w-0">
+          {% if c.poster_url %}
+          <img src="{{ c.poster_url }}" alt="Cover" class="w-10 h-14 object-cover rounded flex-shrink-0" />
+          {% endif %}
+          <div class="min-w-0">
+            <div class="font-medium text-sm">{{ c.title }} ({{ c.year or '—' }})</div>
+            {% if c.extra.get('authors') or c.extra.get('isbn') %}
+            <div class="text-xs opacity-60">
+              {% if c.extra.get('authors') %}{{ c.extra.get('authors') | replace('|', ', ') }}{% endif %}
+              {% if c.extra.get('authors') and c.extra.get('isbn') %} · {% endif %}
+              {% if c.extra.get('isbn') %}ISBN {{ c.extra.get('isbn') }}{% endif %}
+            </div>
+            {% endif %}
+            {% if c.overview %}
+            <div class="text-xs opacity-70 line-clamp-2 mt-0.5">{{ c.overview }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <form hx-post="{{ apply_url }}"
+              hx-target="{{ target_pane }}"
+              hx-swap="innerHTML"
+              onsubmit="setTimeout(() => { document.getElementById('modal-container').innerHTML=''; }, 100);"
+              class="flex-shrink-0">
+          <input type="hidden" name="provider_id" value="{{ c.provider_id }}" />
+          <button type="submit" class="btn btn-xs btn-success">Apply</button>
+        </form>
+      </div>
+      {% else %}
+      <p class="text-sm opacity-60">No Google Books results found.</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</dialog>

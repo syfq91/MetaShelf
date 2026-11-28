@@ -17,10 +17,16 @@
         <span class="badge badge-sm">{{ item.state }}</span>
       </div>
       <p class="text-xs font-mono opacity-60">{{ item.rel_path }}</p>
-      <button type="button" class="btn btn-success btn-xs"
-              hx-post="{{ base_url }}/comics/{{ item.id }}/save"
-              hx-target="#comic-detail-pane"
-              hx-swap="innerHTML">Save ComicInfo XML</button>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn btn-outline btn-xs"
+                hx-get="{{ base_url }}/comics/{{ item.id }}/scrape"
+                hx-target="#modal-container"
+                hx-swap="innerHTML">Search Google Books</button>
+        <button type="button" class="btn btn-success btn-xs"
+                hx-post="{{ base_url }}/comics/{{ item.id }}/save"
+                hx-target="#comic-detail-pane"
+                hx-swap="innerHTML">Save ComicInfo XML</button>
+      </div>
     </div>
   </div>
 
