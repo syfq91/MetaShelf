@@ -1,6 +1,5 @@
 """Phase 4 E2E test: EPUB folder gets .opf/.jpg and empty DB rebuild restores metadata."""
 
-import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -55,19 +54,8 @@ def _make_epub(
         zf.writestr("OEBPS/package.opf", opf)
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 def _jpeg_bytes() -> bytes:

@@ -1,7 +1,6 @@
 """Phase 5 E2E test: CBZ series matched via Comic Vine -> .xml + .jpg, CBZ untouched."""
 
 import hashlib
-import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -21,19 +20,8 @@ from metashelf.readers.comicinfo_xml import read_comicinfo_file
 CV_FIX = Path(__file__).parent / "fixtures" / "comicvine"
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 def _jpeg_bytes() -> bytes:

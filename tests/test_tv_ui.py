@@ -1,6 +1,5 @@
 """Tests for TV Shows UI tree navigation, edit, and save."""
 
-import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -12,19 +11,8 @@ from metashelf.main import create_app
 from metashelf.scanner.tv import scan_tv_library
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 async def test_tv_tree_navigation_and_save(tmp_path: Path) -> None:

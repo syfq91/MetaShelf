@@ -1,6 +1,5 @@
 """Phase 1 E2E test: 20-movie library scan, auto-match with TMDB fixtures, UI edit, and save."""
 
-import re
 from io import BytesIO
 from pathlib import Path
 
@@ -19,19 +18,8 @@ from metashelf.readers.kodi_nfo_movie import read_movie_nfo
 FIXTURES = Path(__file__).parent / "fixtures" / "tmdb"
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 def _jpeg_bytes() -> bytes:

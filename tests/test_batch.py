@@ -1,7 +1,6 @@
 """Tests for batch actions, dry-run, and diff preview."""
 
 import json
-import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -14,19 +13,8 @@ from metashelf.scanner.movie import scan_movie_library
 from metashelf.services.batch import execute_batch_action, preview_batch_diff
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 async def test_batch_dry_run_diff_preview_does_not_touch_disk(tmp_path: Path) -> None:

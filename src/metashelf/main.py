@@ -5,15 +5,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Request, status
-from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from metashelf import __version__
-from metashelf.auth.deps import AuthRedirectError
-from metashelf.auth.security import LoginRateLimiter
 from metashelf.config import Settings, get_settings
 from metashelf.db.models import Item, Job, Library
 from metashelf.db.session import (
@@ -31,7 +29,7 @@ from metashelf.jobs.handlers import (
 from metashelf.jobs.queue import JobWorker
 from metashelf.jobs.scheduler import LibraryScheduler, LibraryWatcher
 from metashelf.logging_config import configure_logging
-from metashelf.web.routers import auth, comics, ebooks, jobs, movies, music, pages, tv
+from metashelf.web.routers import comics, ebooks, jobs, movies, music, pages, tv
 from metashelf.web.routers import settings as settings_router
 
 
@@ -48,7 +46,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     settings.config_dir.mkdir(parents=True, exist_ok=True)
     settings.thumbnails_dir.mkdir(parents=True, exist_ok=True)
-    settings.ensure_secret_key()
     run_migrations(settings.resolved_database_url)
     engine = create_async_engine_with_wal(settings.resolved_database_url)
     session_factory = create_session_factory(engine)
@@ -100,11 +97,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = resolved_settings
-    app.state.login_limiter = LoginRateLimiter()
-
-    @app.exception_handler(AuthRedirectError)
-    async def auth_redirect_handler(_request: Request, exc: AuthRedirectError) -> RedirectResponse:
-        return RedirectResponse(exc.location, status_code=status.HTTP_303_SEE_OTHER)
 
     static_dir = Path(__file__).resolve().parent / "web" / "static"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -147,7 +139,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             media_type="text/plain; version=0.0.4; charset=utf-8",
         )
 
-    app.include_router(auth.router)
     app.include_router(pages.router)
     app.include_router(movies.router)
     app.include_router(tv.router)

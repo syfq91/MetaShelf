@@ -1,7 +1,6 @@
 """Tests for settings export/import and `metashelf rebuild-index` CLI."""
 
 import json
-import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -15,19 +14,8 @@ from metashelf.scanner.movie import scan_movie_library
 from metashelf.services.movie_save import save_movie_to_disk
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 async def test_settings_export_and_import_rejects_missing_dir(tmp_path: Path) -> None:

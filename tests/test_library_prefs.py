@@ -1,6 +1,5 @@
 """Tests for per-library preferences storage and Settings UI."""
 
-import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -15,19 +14,8 @@ from metashelf.services.library_prefs import (
 )
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 async def test_library_prefs_service_and_routes(tmp_path: Path) -> None:

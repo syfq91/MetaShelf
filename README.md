@@ -13,7 +13,7 @@ Self-hosted metadata manager for **movies**, **TV shows**, **music**, **ebooks (
   - **Subtitles:** OpenSubtitles REST API v1 with movie file hashing and `.srt` sidecars.
 - **Web UI:** FastAPI + HTMX + Tailwind/DaisyUI two-pane library views, manual scrape modal, multi-select batch actions with dry-run diff preview, per-library settings, and settings export/import.
 - **Automation & CLI:** Cron-based scheduled rescans, optional filesystem watcher (`METASHELF_WATCH_ENABLED=true`), and `metashelf rebuild-index` CLI.
-- **Security & Observability:** Session cookie auth with CSRF protection and login rate limiting, library path traversal confinement, SSRF & Pillow artwork validation, structured JSON logging, `/healthz`, and `/metrics`.
+- **Security & Observability:** Designed for local LAN or reverse-proxy deployments (no built-in login), library path traversal confinement, SSRF & Pillow artwork validation, structured JSON logging, `/healthz`, and `/metrics`.
 
 ## Quick Start (Docker)
 
@@ -22,7 +22,7 @@ Self-hosted metadata manager for **movies**, **TV shows**, **music**, **ebooks (
 docker compose up -d
 ```
 
-Then open `http://localhost:8000` to create your admin account.
+Then open `http://localhost:8000`. Place MetaShelf behind a reverse proxy (e.g., Caddy, Traefik, or Authelia) if exposing it beyond your local LAN.
 
 ## Configuration
 

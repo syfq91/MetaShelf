@@ -44,8 +44,6 @@ def render_template(
     merged: dict[str, Any] = {
         "base_url": settings.base_url.rstrip("/"),
         "app_version": __version__,
-        "current_user": getattr(request.state, "user", None),
-        "csrf_token": getattr(request.state, "csrf_token", ""),
         "nav_counts": {},
         "active_jobs_count": 0,
         "active_nav": "",

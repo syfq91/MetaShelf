@@ -1,6 +1,5 @@
 """Security hardening tests: path traversal, SSRF, image validation, and rate limits."""
 
-import re
 from io import BytesIO
 from pathlib import Path
 
@@ -21,19 +20,8 @@ from metashelf.writers.artwork import (
 )
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 def _make_png_bytes() -> bytes:
@@ -176,58 +164,3 @@ async def test_artwork_download_rejects_redirect_to_private_bad_type_oversize_an
         assert downloaded.width == 4
         assert downloaded.height == 4
         assert target.exists()
-
-
-def test_login_rate_limit_enforced(tmp_path: Path) -> None:
-    media_root = tmp_path / "media"
-    media_root.mkdir()
-    app_settings = Settings(config_dir=tmp_path / "config", media_roots=str(media_root))
-    app = create_app(settings=app_settings)
-
-    with TestClient(app) as client:
-        client.post(
-            "/auth/setup",
-            data={
-                "username": "admin",
-                "password": "password123",
-                "password_confirm": "password123",
-            },
-        )
-        client.cookies.clear()
-
-        statuses = []
-        for _ in range(12):
-            resp = client.post(
-                "/auth/login",
-                data={"password": "wrong-password"},
-            )
-            statuses.append(resp.status_code)
-        assert 429 in statuses
-
-
-def test_secret_key_auto_generated_and_persisted(tmp_path: Path) -> None:
-    media_root = tmp_path / "media"
-    media_root.mkdir()
-    config_dir = tmp_path / "config"
-
-    app1 = create_app(settings=Settings(config_dir=config_dir, media_roots=str(media_root)))
-    with TestClient(app1):
-        first_key = app1.state.settings.secret_key
-        assert len(first_key) >= 32
-        assert (config_dir / ".secret_key").read_text(encoding="utf-8").strip() == first_key
-
-    # Second startup reuses the persisted key
-    app2 = create_app(settings=Settings(config_dir=config_dir, media_roots=str(media_root)))
-    with TestClient(app2):
-        assert app2.state.settings.secret_key == first_key
-
-    # Explicit key overrides auto-generation
-    app3 = create_app(
-        settings=Settings(
-            config_dir=config_dir,
-            media_roots=str(media_root),
-            secret_key="explicit-user-secret",
-        )
-    )
-    with TestClient(app3):
-        assert app3.state.settings.secret_key == "explicit-user-secret"

@@ -1,6 +1,5 @@
 """Phase 3 E2E test: artist folder with two albums gets artist.nfo, album.nfo, and folder.jpg."""
 
-import re
 from io import BytesIO
 from pathlib import Path
 
@@ -21,19 +20,8 @@ MB_FIX = Path(__file__).parent / "fixtures" / "musicbrainz"
 CAA_FIX = Path(__file__).parent / "fixtures" / "coverart"
 
 
-def _setup_and_login(client: TestClient) -> str:
-    resp = client.post(
-        "/auth/setup",
-        data={
-            "username": "admin",
-            "password": "password123",
-            "password_confirm": "password123",
-        },
-        follow_redirects=True,
-    )
-    match = re.search(r'"X-CSRF-Token":\s*"([^"]+)"', resp.text)
-    assert match is not None
-    return match.group(1)
+def _setup_and_login(_client: TestClient) -> str:
+    return ""
 
 
 def _write_mp3(path: Path, title: str, artist: str, album: str, track: str, year: str) -> None:
