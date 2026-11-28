@@ -26,9 +26,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+<div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
   <!-- 2nd Column: Show -> Season -> Episode Tree -->
-  <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+  <section class="w-full h-[45vh] lg:h-auto lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
     <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 bg-base-100">
       <span class="font-semibold text-xs opacity-80">{{ shows | length }} tv shows, {{ total_episodes }} episodes</span>
     </div>
@@ -119,7 +119,7 @@
   </section>
 
   <!-- 3rd & 4th Columns: Item Details + Image -->
-  <section class="flex-1 flex min-w-0 overflow-hidden bg-base-100" id="tv-detail-pane">
+  <section class="flex-1 flex min-w-0 min-h-[55vh] lg:min-h-0 overflow-hidden bg-base-100" id="tv-detail-pane">
     {% if selected_item %}
       {% include "tv/_detail.html" %}
     {% else %}
