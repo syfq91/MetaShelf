@@ -2,20 +2,88 @@
 {% block title %}TV Shows — MetaShelf{% endblock %}
 {% block content %}
 <div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
-  <!-- Left Pane: Shows List -->
-  <section class="w-full lg:w-80 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
-    <div class="p-3 border-b border-base-300">
+  <!-- Middle Column: MediaElch-style Show -> Season -> Episode Tree -->
+  <section class="w-full lg:w-96 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
+    <div class="p-3 border-b border-base-300 flex items-center justify-between gap-2">
       <h1 class="font-bold text-base">TV Shows</h1>
+      <span class="text-xs opacity-60">{{ shows | length }}</span>
     </div>
-    <div class="flex-1 overflow-y-auto divide-y divide-base-200">
-      {% for s in shows %}
-      <div class="px-3 py-2 hover:bg-base-200 cursor-pointer flex items-center justify-between gap-2 {% if show_item and show_item.id == s.id %}bg-base-200 border-l-4 border-primary{% endif %}"
-           hx-get="{{ base_url }}/tv/{{ s.id }}"
-           hx-target="#tv-detail-pane"
-           hx-swap="innerHTML">
-        <div class="min-w-0">
-          <div class="font-medium text-sm truncate">{{ s.title }}</div>
-          <div class="text-xs opacity-60">{{ s.year or "—" }} · {{ s.state }}</div>
+    <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="tv-tree-list">
+      {% for entry in show_trees %}
+      {% set s = entry.show %}
+      {% set show_expanded = (show_item and show_item.id == s.id) %}
+      <div class="tv-show-group">
+        <!-- Show Row -->
+        <div data-tv-node
+             class="px-2 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == s.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+             hx-get="{{ base_url }}/tv/{{ s.id }}"
+             hx-target="#tv-detail-pane"
+             hx-swap="innerHTML"
+             onclick="selectTvNode(this); expandTvContainer('tv-show-children-{{ s.id }}', 'tv-show-toggle-{{ s.id }}')">
+          <button type="button"
+                  id="tv-show-toggle-{{ s.id }}"
+                  aria-expanded="{{ 'true' if show_expanded else 'false' }}"
+                  aria-controls="tv-show-children-{{ s.id }}"
+                  aria-label="Toggle {{ s.title }}"
+                  class="w-5 h-5 flex items-center justify-center rounded hover:bg-base-300 text-xs flex-shrink-0 opacity-70"
+                  onclick="event.stopPropagation(); toggleTvContainer('tv-show-children-{{ s.id }}', this)">
+            {{ '▾' if show_expanded else '▸' }}
+          </button>
+          <div class="min-w-0 flex-1">
+            <div class="font-medium text-sm truncate">{{ s.title }}</div>
+            <div class="text-xs opacity-60">{{ s.year or "—" }} · {{ s.state }}</div>
+          </div>
+        </div>
+
+        <!-- Seasons & Episodes under Show -->
+        <div id="tv-show-children-{{ s.id }}" class="{% if not show_expanded %}hidden{% endif %} bg-base-200/30 border-t border-base-200">
+          {% for se in entry.seasons %}
+          {% set season = se.season %}
+          {% set season_expanded = show_expanded %}
+          <div>
+            <!-- Season Row -->
+            <div data-tv-node
+                 class="pl-6 pr-2 py-1.5 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == season.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+                 hx-get="{{ base_url }}/tv/{{ season.id }}"
+                 hx-target="#tv-detail-pane"
+                 hx-swap="innerHTML"
+                 onclick="selectTvNode(this); expandTvContainer('tv-season-children-{{ season.id }}', 'tv-season-toggle-{{ season.id }}')">
+              <button type="button"
+                      id="tv-season-toggle-{{ season.id }}"
+                      aria-expanded="{{ 'true' if season_expanded else 'false' }}"
+                      aria-controls="tv-season-children-{{ season.id }}"
+                      aria-label="Toggle {{ season.title }}"
+                      class="w-4 h-4 flex items-center justify-center rounded hover:bg-base-300 text-[11px] flex-shrink-0 opacity-70"
+                      onclick="event.stopPropagation(); toggleTvContainer('tv-season-children-{{ season.id }}', this)">
+                {{ '▾' if season_expanded else '▸' }}
+              </button>
+              <span class="text-xs font-semibold opacity-80 truncate flex-1">{{ season.title }}</span>
+              <span class="text-[11px] opacity-50 flex-shrink-0">{{ se.episodes | length }}</span>
+            </div>
+
+            <!-- Episode Rows -->
+            <div id="tv-season-children-{{ season.id }}" class="{% if not season_expanded %}hidden{% endif %}">
+              {% for ep in se.episodes %}
+              {% set ep_item = ep.item %}
+              <div data-tv-node
+                   class="pl-11 pr-3 py-1 hover:bg-base-200 cursor-pointer flex items-center gap-2 text-xs {% if selected_item and selected_item.id == ep_item.id %}bg-base-200 border-l-4 border-primary font-medium{% endif %}"
+                   hx-get="{{ base_url }}/tv/{{ ep_item.id }}"
+                   hx-target="#tv-detail-pane"
+                   hx-swap="innerHTML"
+                   onclick="selectTvNode(this)">
+                <span class="font-mono text-[11px] opacity-70 flex-shrink-0">{{ ep.code }}</span>
+                {% if ep.title %}
+                <span class="truncate flex-1">{{ ep.title }}</span>
+                {% endif %}
+                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {% if ep_item.state == 'matched' %}bg-success{% elif ep_item.state == 'dirty' %}bg-warning{% elif ep_item.state == 'error' %}bg-error{% else %}bg-base-content/25{% endif %}"
+                      title="{{ ep_item.state }}"></span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="pl-8 py-1.5 text-xs opacity-50">No episodes</div>
+          {% endfor %}
         </div>
       </div>
       {% else %}
@@ -24,7 +92,7 @@
     </div>
   </section>
 
-  <!-- Right Pane: Tree + Detail Editor -->
+  <!-- Right Pane: Detail Editor -->
   <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="tv-detail-pane">
     {% if selected_item %}
       {% include "tv/_detail.html" %}
@@ -36,4 +104,39 @@
     {% endif %}
   </section>
 </div>
+
+<script>
+  function toggleTvContainer(containerId, btn) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    var isHidden = el.classList.toggle("hidden");
+    if (btn) {
+      btn.textContent = isHidden ? "▸" : "▾";
+      btn.setAttribute("aria-expanded", isHidden ? "false" : "true");
+    }
+  }
+
+  function expandTvContainer(containerId, btnId) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    if (el.classList.contains("hidden")) {
+      el.classList.remove("hidden");
+      var btn = document.getElementById(btnId);
+      if (btn) {
+        btn.textContent = "▾";
+        btn.setAttribute("aria-expanded", "true");
+      }
+    }
+  }
+
+  function selectTvNode(node) {
+    var nodes = document.querySelectorAll("#tv-tree-list [data-tv-node]");
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.remove("bg-base-200", "border-l-4", "border-primary");
+    }
+    if (node) {
+      node.classList.add("bg-base-200", "border-l-4", "border-primary");
+    }
+  }
+</script>
 {% endblock %}

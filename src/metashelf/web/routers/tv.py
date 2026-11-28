@@ -112,6 +112,81 @@ async def _tv_detail_context(
     }
 
 
+def _episode_code(ep_meta: EpisodeMetadata) -> str:
+    ep_nums = ep_meta.episodes or [ep_meta.episode]
+    return f"S{ep_meta.season:02d}" + "".join(f"E{n:02d}" for n in ep_nums)
+
+
+async def _load_shows_with_trees(
+    session: AsyncSession,
+    shows: list[Item],
+) -> list[dict[str, Any]]:
+    """Build Show -> Season -> Episode tree for the middle-column list in 2 batch queries."""
+    if not shows:
+        return []
+
+    show_ids = [s.id for s in shows]
+    seasons = list(
+        (
+            await session.execute(
+                select(Item)
+                .where(Item.parent_id.in_(show_ids), Item.kind == ItemKind.SEASON.value)
+                .order_by(Item.rel_path)
+            )
+        ).scalars().all()
+    )
+
+    season_ids = [se.id for se in seasons]
+    episodes: list[Item] = []
+    if season_ids:
+        episodes = list(
+            (
+                await session.execute(
+                    select(Item)
+                    .where(Item.parent_id.in_(season_ids), Item.kind == ItemKind.EPISODE.value)
+                    .order_by(Item.rel_path)
+                )
+            ).scalars().all()
+        )
+
+    eps_by_season: dict[int, list[dict[str, Any]]] = {}
+    for ep in episodes:
+        if ep.parent_id is None:
+            continue
+        ep_meta = EpisodeMetadata.model_validate_json(ep.metadata_json or "{}")
+        code = _episode_code(ep_meta)
+        display_title = "" if ep.title == code else ep.title
+        eps_by_season.setdefault(ep.parent_id, []).append(
+            {
+                "item": ep,
+                "code": code,
+                "title": display_title,
+                "sort_key": (ep_meta.season, ep_meta.episode, ep.rel_path),
+            }
+        )
+    for ep_list in eps_by_season.values():
+        ep_list.sort(key=lambda e: e["sort_key"])
+
+    seasons_by_show: dict[int, list[dict[str, Any]]] = {}
+    for se in seasons:
+        if se.parent_id is None:
+            continue
+        seasons_by_show.setdefault(se.parent_id, []).append(
+            {
+                "season": se,
+                "episodes": eps_by_season.get(se.id, []),
+            }
+        )
+
+    return [
+        {
+            "show": s,
+            "seasons": seasons_by_show.get(s.id, []),
+        }
+        for s in shows
+    ]
+
+
 @router.get("", response_class=HTMLResponse)
 async def tv_index(
     request: Request,
@@ -120,12 +195,13 @@ async def tv_index(
     q: Annotated[str, Query()] = "",
     selected_id: Annotated[int | None, Query()] = None,
 ) -> HTMLResponse:
-    """Render two-pane TV Shows view."""
+    """Render two-pane TV Shows view with expandable Show -> Season -> Episode tree."""
     nav_ctx = await get_nav_context(session)
     stmt = select(Item).where(Item.kind == ItemKind.SHOW.value)
     if q.strip():
         stmt = stmt.where(Item.title.ilike(f"%{q.strip()}%"))
     shows = list((await session.execute(stmt.order_by(Item.title.asc()))).scalars().all())
+    show_trees = await _load_shows_with_trees(session, shows)
 
     selected_item: Item | None = None
     if selected_id is not None:
@@ -141,6 +217,7 @@ async def tv_index(
             "active_nav": "tv",
             "q": q,
             "shows": shows,
+            "show_trees": show_trees,
             "selected_item": selected_item,
             **nav_ctx,
             **detail_ctx,

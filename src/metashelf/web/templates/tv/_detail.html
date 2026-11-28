@@ -3,9 +3,9 @@
   <div class="alert alert-info text-sm py-2">{{ toast }}</div>
   {% endif %}
 
-  <!-- Show / Season / Episode Tree Switcher -->
+  <!-- Show Toolbar -->
   <div class="bg-base-200 border border-base-300 rounded-box p-3">
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <button type="button"
               class="btn btn-xs {% if item.id == show_item.id %}btn-primary{% else %}btn-ghost{% endif %}"
               hx-get="{{ base_url }}/tv/{{ show_item.id }}"
@@ -27,31 +27,6 @@
           Fetch All Episodes
         </button>
       </div>
-    </div>
-
-    <div class="flex flex-wrap gap-3 text-xs">
-      {% for node in tree %}
-      <div class="space-y-1">
-        <button type="button"
-                class="btn btn-xs {% if item.id == node.season.id %}btn-primary{% else %}btn-outline{% endif %}"
-                hx-get="{{ base_url }}/tv/{{ node.season.id }}"
-                hx-target="#tv-detail-pane"
-                hx-swap="innerHTML">
-          {{ node.season.title }}
-        </button>
-        <div class="flex flex-wrap gap-1 pl-1">
-          {% for ep in node.episodes %}
-          <button type="button"
-                  class="badge badge-sm cursor-pointer {% if item.id == ep.id %}badge-primary{% else %}badge-ghost{% endif %}"
-                  hx-get="{{ base_url }}/tv/{{ ep.id }}"
-                  hx-target="#tv-detail-pane"
-                  hx-swap="innerHTML">
-            {{ ep.title }}
-          </button>
-          {% endfor %}
-        </div>
-      </div>
-      {% endfor %}
     </div>
   </div>
 

@@ -45,6 +45,9 @@ async def test_tv_tree_navigation_and_save(tmp_path: Path) -> None:
         assert r.status_code == 200
         assert "Breaking Bad" in r.text
         assert "Season 01" in r.text
+        assert f'id="tv-show-children-{show_id}"' in r.text
+        assert f'hx-get="/tv/{ep_id}"' in r.text
+        assert "S01E01" in r.text
 
         # Navigate to episode in tree
         r_ep = client.get(f"/tv/{ep_id}")
