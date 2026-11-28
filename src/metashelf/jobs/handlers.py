@@ -39,6 +39,7 @@ from metashelf.scanner.tv import scan_tv_library
 from metashelf.services.paths import resolve_within_root
 from metashelf.services.tv_save import fetch_all_episodes_for_show
 from metashelf.web.routers.settings import (
+    SETTING_GOODBOOKS_KEY,
     SETTING_LANGUAGE,
     SETTING_MOVIE_NAMING,
     SETTING_TMDB_KEY,
@@ -321,9 +322,12 @@ async def handle_auto_match(
 
     if lib.type == "ebook":
         ol = OpenLibraryProvider(http_client=http_client, cache=cache)
+        gb_key = await get_setting_value(
+            session, SETTING_GOODBOOKS_KEY, settings.google_books_api_key
+        )
         gb = GoogleBooksProvider(
             http_client=http_client,
-            api_key=settings.google_books_api_key,
+            api_key=gb_key,
             cache=cache,
         )
         job.total = 1

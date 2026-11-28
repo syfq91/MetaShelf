@@ -76,7 +76,7 @@ def test_ebook_and_comic_google_books_search_and_apply(tmp_path: Path) -> None:
     }
     gb_volume_payload = gb_search_payload["items"][0]
 
-    respx.get("https://www.googleapis.com/books/v1/volumes").mock(
+    gb_search_route = respx.get("https://www.googleapis.com/books/v1/volumes").mock(
         return_value=httpx.Response(200, json=gb_search_payload)
     )
     respx.get("https://www.googleapis.com/books/v1/volumes/gb-vol-1").mock(
@@ -92,6 +92,14 @@ def test_ebook_and_comic_google_books_search_and_apply(tmp_path: Path) -> None:
 
     app = create_app(settings=Settings(config_dir=tmp_path / "config"))
     with TestClient(app) as client:
+        # Google Books API key saved through Settings reaches the provider
+        r_prefs = client.post(
+            "/settings/preferences", data={"google_books_api_key": "test-gb-key"}
+        )
+        assert r_prefs.status_code == 200
+        r_settings = client.get("/settings")
+        assert "Google Books API Key (configured)" in r_settings.text
+
         # Create and scan ebook library
         assert (
             client.post(
@@ -153,6 +161,7 @@ def test_ebook_and_comic_google_books_search_and_apply(tmp_path: Path) -> None:
         assert r_search.status_code == 200
         assert "Frank Herbert" in r_search.text
         assert "9780441172719" in r_search.text
+        assert gb_search_route.calls.last.request.url.params.get("key") == "test-gb-key"
 
         r_apply = client.post(
             f"/ebooks/{ebook_id}/scrape/apply",

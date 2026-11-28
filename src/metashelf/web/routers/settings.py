@@ -28,6 +28,7 @@ from metashelf.web.templating import get_nav_context, render_template
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 SETTING_TMDB_KEY = "tmdb_api_key"
+SETTING_GOODBOOKS_KEY = "google_books_api_key"
 SETTING_LANGUAGE = "metadata_language"
 SETTING_MOVIE_NAMING = "movie_naming_scheme"
 
@@ -67,6 +68,9 @@ async def settings_page(
     lib_ctx = await _libraries_context(session)
     settings = request.app.state.settings
     tmdb_key = await get_setting_value(session, SETTING_TMDB_KEY, settings.tmdb_api_key)
+    google_books_key = await get_setting_value(
+        session, SETTING_GOODBOOKS_KEY, settings.google_books_api_key
+    )
     language = await get_setting_value(session, SETTING_LANGUAGE, "en-US")
     naming = await get_setting_value(session, SETTING_MOVIE_NAMING, "file")
     return render_template(
@@ -76,6 +80,7 @@ async def settings_page(
             "active_nav": "settings",
             "library_types": [t.value for t in LibraryType],
             "tmdb_api_key_set": bool(tmdb_key),
+            "google_books_api_key_set": bool(google_books_key),
             "language": language,
             "movie_naming": naming,
             **nav_ctx,
@@ -271,12 +276,17 @@ async def save_preferences(
     request: Request,
     session: DbSession,
     tmdb_api_key: Annotated[str, Form()] = "",
+    google_books_api_key: Annotated[str, Form()] = "",
     language: Annotated[str, Form()] = "en-US",
     movie_naming: Annotated[str, Form()] = "file",
 ) -> HTMLResponse:
     """Save provider and metadata preferences."""
     if tmdb_api_key.strip():
         await set_setting_value(session, SETTING_TMDB_KEY, tmdb_api_key.strip())
+    if google_books_api_key.strip():
+        await set_setting_value(
+            session, SETTING_GOODBOOKS_KEY, google_books_api_key.strip()
+        )
     await set_setting_value(session, SETTING_LANGUAGE, language.strip() or "en-US")
     if movie_naming in {"file", "folder"}:
         await set_setting_value(session, SETTING_MOVIE_NAMING, movie_naming)

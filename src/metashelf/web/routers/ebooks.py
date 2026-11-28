@@ -249,7 +249,7 @@ async def ebook_scrape_search(
     if item is None or item.kind != ItemKind.EBOOK.value:
         raise HTTPException(status_code=404, detail="Ebook not found")
 
-    provider = get_google_books_provider(request, session)
+    provider = await get_google_books_provider(request, session)
     candidates = []
     error: str | None = None
     try:
@@ -300,7 +300,7 @@ async def ebook_scrape_apply(
         raise HTTPException(status_code=404, detail="Library not found")
 
     local_meta = EbookMetadata.model_validate_json(item.metadata_json or "{}")
-    provider = get_google_books_provider(request, session)
+    provider = await get_google_books_provider(request, session)
     fetched = await provider.fetch("ebook", provider_id, local_meta.language or "en")
     assert isinstance(fetched, EbookMetadata)
 

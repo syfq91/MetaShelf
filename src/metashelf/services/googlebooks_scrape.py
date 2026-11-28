@@ -11,13 +11,19 @@ from metashelf.db.models import Artwork, Item
 from metashelf.domain.models import ArtworkType
 from metashelf.providers.cache import ProviderResponseCache
 from metashelf.providers.googlebooks import GoogleBooksProvider
+from metashelf.web.routers.settings import SETTING_GOODBOOKS_KEY, get_setting_value
 from metashelf.writers.artwork import ArtworkDownloadError, download_artwork
 
 
-def get_google_books_provider(request: Request, session: AsyncSession) -> GoogleBooksProvider:
+async def get_google_books_provider(
+    request: Request, session: AsyncSession
+) -> GoogleBooksProvider:
     """Build a GoogleBooksProvider using app HTTP client, API key, and DB response cache."""
     http_client: httpx.AsyncClient = request.app.state.http_client
-    api_key: str = request.app.state.settings.google_books_api_key
+    settings = request.app.state.settings
+    api_key = await get_setting_value(
+        session, SETTING_GOODBOOKS_KEY, settings.google_books_api_key
+    )
     return GoogleBooksProvider(
         http_client=http_client,
         api_key=api_key,

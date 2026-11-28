@@ -246,7 +246,7 @@ async def comic_scrape_search(
     if item is None or item.kind != ItemKind.COMIC.value:
         raise HTTPException(status_code=404, detail="Comic not found")
 
-    provider = get_google_books_provider(request, session)
+    provider = await get_google_books_provider(request, session)
     candidates = []
     error: str | None = None
     try:
@@ -297,7 +297,7 @@ async def comic_scrape_apply(
         raise HTTPException(status_code=404, detail="Library not found")
 
     local_meta = ComicMetadata.model_validate_json(item.metadata_json or "{}")
-    provider = get_google_books_provider(request, session)
+    provider = await get_google_books_provider(request, session)
     fetched = await provider.fetch("comic", provider_id)
     assert isinstance(fetched, ComicMetadata)
 

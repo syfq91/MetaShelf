@@ -63,10 +63,15 @@
       <form hx-post="{{ base_url }}/settings/preferences"
             hx-target="#prefs-status"
             hx-swap="innerHTML"
-            class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mt-2">
+            class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mt-2">
         <div class="form-control">
           <label class="label py-1"><span class="label-text text-xs">TMDB API Key {% if tmdb_api_key_set %}(configured){% endif %}</span></label>
-          <input type="password" name="tmdb_api_key" placeholder="Leave blank to keep current"
+          <input type="password" name="tmdb_api_key" autocomplete="off" placeholder="Leave blank to keep current"
+                 class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">Google Books API Key {% if google_books_api_key_set %}(configured){% endif %}</span></label>
+          <input type="password" name="google_books_api_key" autocomplete="off" placeholder="Leave blank to keep current"
                  class="input input-bordered input-sm" />
         </div>
         <div class="form-control">
@@ -81,7 +86,7 @@
             <option value="folder" {% if movie_naming == 'folder' %}selected{% endif %}>movie.nfo / poster.jpg</option>
           </select>
         </div>
-        <div class="md:col-span-3 flex items-center justify-between">
+        <div class="md:col-span-4 flex items-center justify-between">
           <button type="submit" class="btn btn-primary btn-sm">Save Preferences</button>
           <span class="text-xs opacity-60">This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
         </div>
