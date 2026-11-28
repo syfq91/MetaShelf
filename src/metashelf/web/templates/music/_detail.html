@@ -20,12 +20,12 @@
           hx-target="#music-detail-pane"
           hx-swap="innerHTML"
           class="space-y-3">
-      <div class="form-control">
-        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Artist</span></label>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs opacity-70">Artist</label>
         <input type="text" name="title" value="{{ artist_meta.name }}" class="input input-bordered input-sm w-full" />
       </div>
-      <div class="form-control">
-        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Biography</span></label>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs opacity-70">Biography</label>
         <textarea name="biography" rows="6" placeholder="Biography" class="textarea textarea-bordered textarea-sm w-full">{{ artist_meta.biography }}</textarea>
       </div>
       <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
@@ -46,21 +46,21 @@
           hx-swap="innerHTML"
           class="space-y-3">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div class="form-control">
-          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Title</span></label>
-          <input type="text" name="title" value="{{ album_meta.title }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Title</label>
+          <input type="text" name="title" value="{{ album_meta.title }}" class="input input-bordered input-sm w-full" />
         </div>
-        <div class="form-control">
-          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Year</span></label>
-          <input type="text" name="year" value="{{ album_meta.year or '' }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Year</label>
+          <input type="text" name="year" value="{{ album_meta.year or '' }}" class="input input-bordered input-sm w-full" />
         </div>
-        <div class="form-control">
-          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Label</span></label>
-          <input type="text" name="label" value="{{ album_meta.label }}" placeholder="Label" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Label</label>
+          <input type="text" name="label" value="{{ album_meta.label }}" placeholder="Label" class="input input-bordered input-sm w-full" />
         </div>
       </div>
-      <div class="form-control">
-        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Review</span></label>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs opacity-70">Review</label>
         <textarea name="review" rows="5" placeholder="Review" class="textarea textarea-bordered textarea-sm w-full">{{ album_meta.review }}</textarea>
       </div>
       <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>

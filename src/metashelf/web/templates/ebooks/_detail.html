@@ -30,44 +30,44 @@
           hx-swap="innerHTML"
           class="space-y-3">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div class="form-control">
-          <label class="label py-1"><span class="label-text text-xs">Title</span></label>
-          <input type="text" name="title" value="{{ meta.title }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Title</label>
+          <input type="text" name="title" value="{{ meta.title }}" class="input input-bordered input-sm w-full" />
         </div>
-        <div class="form-control">
-          <label class="label py-1"><span class="label-text text-xs">Authors (comma-separated)</span></label>
-          <input type="text" name="authors" value="{{ meta.authors | join(', ') }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Authors (comma-separated)</label>
+          <input type="text" name="authors" value="{{ meta.authors | join(', ') }}" class="input input-bordered input-sm w-full" />
         </div>
-        <div class="form-control">
-          <label class="label py-1"><span class="label-text text-xs">Series</span></label>
-          <input type="text" name="series" value="{{ meta.series }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Series</label>
+          <input type="text" name="series" value="{{ meta.series }}" class="input input-bordered input-sm w-full" />
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <div class="form-control">
-            <label class="label py-1"><span class="label-text text-xs">Series Index</span></label>
-            <input type="text" name="series_index" value="{{ meta.series_index }}" class="input input-bordered input-sm" />
+          <div class="flex flex-col gap-1">
+            <label class="text-xs opacity-70">Series Index</label>
+            <input type="text" name="series_index" value="{{ meta.series_index }}" class="input input-bordered input-sm w-full" />
           </div>
-          <div class="form-control">
-            <label class="label py-1"><span class="label-text text-xs">ISBN</span></label>
-            <input type="text" name="isbn" value="{{ meta.isbn }}" class="input input-bordered input-sm" />
+          <div class="flex flex-col gap-1">
+            <label class="text-xs opacity-70">ISBN</label>
+            <input type="text" name="isbn" value="{{ meta.isbn }}" class="input input-bordered input-sm w-full" />
           </div>
         </div>
-        <div class="form-control">
-          <label class="label py-1"><span class="label-text text-xs">Publisher</span></label>
-          <input type="text" name="publisher" value="{{ meta.publisher }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Publisher</label>
+          <input type="text" name="publisher" value="{{ meta.publisher }}" class="input input-bordered input-sm w-full" />
         </div>
-        <div class="form-control">
-          <label class="label py-1"><span class="label-text text-xs">Published Date</span></label>
-          <input type="text" name="published_date" value="{{ meta.published_date }}" class="input input-bordered input-sm" />
+        <div class="flex flex-col gap-1">
+          <label class="text-xs opacity-70">Published Date</label>
+          <input type="text" name="published_date" value="{{ meta.published_date }}" class="input input-bordered input-sm w-full" />
         </div>
       </div>
-      <div class="form-control">
-        <label class="label py-1"><span class="label-text text-xs">Subjects / Tags (comma-separated)</span></label>
-        <input type="text" name="subjects" value="{{ meta.subjects | join(', ') }}" class="input input-bordered input-sm" />
+      <div class="flex flex-col gap-1">
+        <label class="text-xs opacity-70">Subjects / Tags (comma-separated)</label>
+        <input type="text" name="subjects" value="{{ meta.subjects | join(', ') }}" class="input input-bordered input-sm w-full" />
       </div>
-      <div class="form-control">
-        <label class="label py-1"><span class="label-text text-xs">Description</span></label>
-        <textarea name="description" rows="5" class="textarea textarea-bordered textarea-sm">{{ meta.description }}</textarea>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs opacity-70">Description</label>
+        <textarea name="description" rows="5" class="textarea textarea-bordered textarea-sm w-full">{{ meta.description }}</textarea>
       </div>
       <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
     </form>
