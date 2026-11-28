@@ -202,6 +202,7 @@ async def tv_index(
         stmt = stmt.where(Item.title.ilike(f"%{q.strip()}%"))
     shows = list((await session.execute(stmt.order_by(Item.title.asc()))).scalars().all())
     show_trees = await _load_shows_with_trees(session, shows)
+    total_episodes = sum(len(se["episodes"]) for t in show_trees for se in t["seasons"])
 
     selected_item: Item | None = None
     if selected_id is not None:
@@ -218,6 +219,7 @@ async def tv_index(
             "q": q,
             "shows": shows,
             "show_trees": show_trees,
+            "total_episodes": total_episodes,
             "selected_item": selected_item,
             **nav_ctx,
             **detail_ctx,

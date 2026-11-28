@@ -1,21 +1,47 @@
 {% extends "base.html" %}
 {% block title %}TV Shows — MetaShelf{% endblock %}
+{% block main_class %}p-0 overflow-hidden{% endblock %}
+
+{% block toolbar_actions %}
+<button type="button" class="btn btn-primary btn-xs"
+        onclick="triggerDetailAction('[data-action=scrape]')">
+  Search Online
+</button>
+<button type="button" class="btn btn-secondary btn-xs"
+        onclick="triggerDetailAction('[data-action=fetch-episodes]')">
+  Fetch All Episodes
+</button>
+<button type="button" class="btn btn-success btn-xs"
+        onclick="triggerDetailAction('[data-action=save]')">
+  Save
+</button>
+{% endblock %}
+
+{% block toolbar_filter %}
+<form action="{{ base_url }}/tv" method="get" class="hidden sm:flex">
+  <input type="search" name="q" value="{{ q | default('') }}"
+         placeholder="Filter shows..."
+         class="input input-xs input-bordered w-44 md:w-56" />
+</form>
+{% endblock %}
+
 {% block content %}
-<div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
-  <!-- Middle Column: MediaElch-style Show -> Season -> Episode Tree -->
-  <section class="w-full lg:w-96 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
-    <div class="p-3 border-b border-base-300 flex items-center justify-between gap-2">
-      <h1 class="font-bold text-base">TV Shows</h1>
-      <span class="text-xs opacity-60">{{ shows | length }}</span>
+<div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+  <!-- 2nd Column: Show -> Season -> Episode Tree -->
+  <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 bg-base-100">
+      <span class="font-semibold text-xs opacity-80">{{ shows | length }} tv shows, {{ total_episodes }} episodes</span>
     </div>
     <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="tv-tree-list">
       {% for entry in show_trees %}
       {% set s = entry.show %}
       {% set show_expanded = (show_item and show_item.id == s.id) %}
+      {% set show_ep_count = namespace(val=0) %}
+      {% for se in entry.seasons %}{% set show_ep_count.val = show_ep_count.val + (se.episodes | length) %}{% endfor %}
       <div class="tv-show-group">
         <!-- Show Row -->
         <div data-tv-node
-             class="px-2 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == s.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+             class="px-2 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == s.id %}bg-primary text-primary-content{% endif %}"
              hx-get="{{ base_url }}/tv/{{ s.id }}"
              hx-target="#tv-detail-pane"
              hx-swap="innerHTML"
@@ -25,13 +51,13 @@
                   aria-expanded="{{ 'true' if show_expanded else 'false' }}"
                   aria-controls="tv-show-children-{{ s.id }}"
                   aria-label="Toggle {{ s.title }}"
-                  class="w-5 h-5 flex items-center justify-center rounded hover:bg-base-300 text-xs flex-shrink-0 opacity-70"
+                  class="w-5 h-5 flex items-center justify-center rounded hover:bg-base-300/50 text-xs flex-shrink-0 opacity-75"
                   onclick="event.stopPropagation(); toggleTvContainer('tv-show-children-{{ s.id }}', this)">
             {{ '▾' if show_expanded else '▸' }}
           </button>
           <div class="min-w-0 flex-1">
-            <div class="font-medium text-sm truncate">{{ s.title }}</div>
-            <div class="text-xs opacity-60">{{ s.year or "—" }} · {{ s.state }}</div>
+            <div class="font-semibold text-sm truncate">{{ s.title }}</div>
+            <div class="text-xs opacity-70">{{ show_ep_count.val }} episodes · {{ s.year or "—" }} · {{ s.state }}</div>
           </div>
         </div>
 
@@ -43,7 +69,7 @@
           <div>
             <!-- Season Row -->
             <div data-tv-node
-                 class="pl-6 pr-2 py-1.5 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == season.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+                 class="pl-6 pr-2 py-1.5 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == season.id %}bg-primary text-primary-content{% endif %}"
                  hx-get="{{ base_url }}/tv/{{ season.id }}"
                  hx-target="#tv-detail-pane"
                  hx-swap="innerHTML"
@@ -53,12 +79,12 @@
                       aria-expanded="{{ 'true' if season_expanded else 'false' }}"
                       aria-controls="tv-season-children-{{ season.id }}"
                       aria-label="Toggle {{ season.title }}"
-                      class="w-4 h-4 flex items-center justify-center rounded hover:bg-base-300 text-[11px] flex-shrink-0 opacity-70"
+                      class="w-4 h-4 flex items-center justify-center rounded hover:bg-base-300/50 text-[11px] flex-shrink-0 opacity-75"
                       onclick="event.stopPropagation(); toggleTvContainer('tv-season-children-{{ season.id }}', this)">
                 {{ '▾' if season_expanded else '▸' }}
               </button>
-              <span class="text-xs font-semibold opacity-80 truncate flex-1">{{ season.title }}</span>
-              <span class="text-[11px] opacity-50 flex-shrink-0">{{ se.episodes | length }}</span>
+              <span class="text-xs font-semibold opacity-85 truncate flex-1">{{ season.title }}</span>
+              <span class="text-[11px] opacity-60 flex-shrink-0">{{ se.episodes | length }}</span>
             </div>
 
             <!-- Episode Rows -->
@@ -66,12 +92,12 @@
               {% for ep in se.episodes %}
               {% set ep_item = ep.item %}
               <div data-tv-node
-                   class="pl-11 pr-3 py-1 hover:bg-base-200 cursor-pointer flex items-center gap-2 text-xs {% if selected_item and selected_item.id == ep_item.id %}bg-base-200 border-l-4 border-primary font-medium{% endif %}"
+                   class="pl-11 pr-3 py-1 hover:bg-base-200 cursor-pointer flex items-center gap-2 text-xs {% if selected_item and selected_item.id == ep_item.id %}bg-primary text-primary-content font-medium{% endif %}"
                    hx-get="{{ base_url }}/tv/{{ ep_item.id }}"
                    hx-target="#tv-detail-pane"
                    hx-swap="innerHTML"
                    onclick="selectTvNode(this)">
-                <span class="font-mono text-[11px] opacity-70 flex-shrink-0">{{ ep.code }}</span>
+                <span class="font-mono text-[11px] opacity-80 flex-shrink-0">{{ ep.code }}</span>
                 {% if ep.title %}
                 <span class="truncate flex-1">{{ ep.title }}</span>
                 {% endif %}
@@ -92,14 +118,16 @@
     </div>
   </section>
 
-  <!-- Right Pane: Detail Editor -->
-  <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="tv-detail-pane">
+  <!-- 3rd & 4th Columns: Item Details + Image -->
+  <section class="flex-1 flex min-w-0 overflow-hidden bg-base-100" id="tv-detail-pane">
     {% if selected_item %}
       {% include "tv/_detail.html" %}
     {% else %}
-      <div class="p-8 text-center opacity-60">
-        <p class="text-lg font-medium">No TV shows found</p>
-        <p class="text-sm mt-1">Add a TV library in Settings and run a scan.</p>
+      <div class="flex-1 flex items-center justify-center p-8 text-center opacity-60">
+        <div>
+          <p class="text-lg font-medium">No TV shows found</p>
+          <p class="text-sm mt-1">Add a TV library in Settings and run a scan.</p>
+        </div>
       </div>
     {% endif %}
   </section>
@@ -132,10 +160,10 @@
   function selectTvNode(node) {
     var nodes = document.querySelectorAll("#tv-tree-list [data-tv-node]");
     for (var i = 0; i < nodes.length; i++) {
-      nodes[i].classList.remove("bg-base-200", "border-l-4", "border-primary");
+      nodes[i].classList.remove("bg-primary", "text-primary-content");
     }
     if (node) {
-      node.classList.add("bg-base-200", "border-l-4", "border-primary");
+      node.classList.add("bg-primary", "text-primary-content");
     }
   }
 </script>

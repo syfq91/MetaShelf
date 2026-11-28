@@ -1,12 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Movies — MetaShelf{% endblock %}
+{% block main_class %}p-0 overflow-hidden{% endblock %}
+
+{% block toolbar_actions %}
+<button type="button" class="btn btn-primary btn-xs"
+        onclick="triggerDetailAction('[data-action=scrape]')">
+  Search Online
+</button>
+<button type="button" class="btn btn-success btn-xs"
+        onclick="triggerDetailAction('[data-action=save]')">
+  Save
+</button>
+<button type="button" class="btn btn-outline btn-xs"
+        onclick="triggerDetailAction('[data-action=revert]')">
+  Revert
+</button>
+{% endblock %}
+
+{% block toolbar_filter %}
+<form action="{{ base_url }}/movies" method="get" class="hidden sm:flex">
+  <input type="hidden" name="flt" value="{{ flt }}" />
+  <input type="hidden" name="sort" value="{{ sort }}" />
+  <input type="search" name="q" value="{{ q | default('') }}"
+         placeholder="Filter movies..."
+         class="input input-xs input-bordered w-44 md:w-56" />
+</form>
+{% endblock %}
+
 {% block content %}
-<div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
-  <!-- Left Pane: Filterable List -->
-  <section class="w-full lg:w-96 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
-    <div class="p-3 border-b border-base-300 space-y-2">
+<div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+  <!-- 2nd Column: Filterable Movies List -->
+  <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+    <div class="p-2.5 border-b border-base-300 space-y-2">
       <div class="flex items-center justify-between gap-2">
-        <h1 class="font-bold text-base">Movies</h1>
+        <span class="font-semibold text-xs opacity-80">Movies</span>
         <form method="get" action="{{ base_url }}/movies" class="flex items-center gap-1">
           <input type="hidden" name="flt" value="{{ flt }}" />
           <input type="hidden" name="q" value="{{ q }}" />
@@ -60,14 +87,16 @@
     </form>
   </section>
 
-  <!-- Right Pane: Detail Editor -->
-  <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="movie-detail-pane">
+  <!-- 3rd & 4th Columns: Item Details + Image -->
+  <section class="flex-1 flex min-w-0 overflow-hidden bg-base-100" id="movie-detail-pane">
     {% if selected_item %}
       {% include "movies/_detail.html" %}
     {% else %}
-      <div class="p-8 text-center opacity-60">
-        <p class="text-lg font-medium">No movies found</p>
-        <p class="text-sm mt-1">Add a movie library in Settings and run a scan.</p>
+      <div class="flex-1 flex items-center justify-center p-8 text-center opacity-60">
+        <div>
+          <p class="text-lg font-medium">No movies found</p>
+          <p class="text-sm mt-1">Add a movie library in Settings and run a scan.</p>
+        </div>
       </div>
     {% endif %}
   </section>

@@ -1,21 +1,42 @@
 {% extends "base.html" %}
 {% block title %}Comics — MetaShelf{% endblock %}
+{% block main_class %}p-0 overflow-hidden{% endblock %}
+
+{% block toolbar_actions %}
+<button type="button" class="btn btn-primary btn-xs"
+        onclick="triggerDetailAction('[data-action=scrape]')">
+  Search Google Books
+</button>
+<button type="button" class="btn btn-success btn-xs"
+        onclick="triggerDetailAction('[data-action=save]')">
+  Save ComicInfo XML
+</button>
+{% endblock %}
+
+{% block toolbar_filter %}
+<form action="{{ base_url }}/comics" method="get" class="hidden sm:flex" onsubmit="return false;">
+  <input type="search" placeholder="Filter comics..."
+         oninput="filterRows('#comic-list-pane [data-filter-text]', this.value)"
+         class="input input-xs input-bordered w-44 md:w-56" />
+</form>
+{% endblock %}
+
 {% block content %}
-<div class="flex flex-col lg:flex-row gap-4 h-[calc(100vh-5.5rem)]">
-  <!-- Left Pane: Series-grouped Issues -->
-  <section class="w-full lg:w-80 flex-shrink-0 card bg-base-100 border border-base-300 shadow-sm flex flex-col overflow-hidden">
-    <div class="p-3 border-b border-base-300">
-      <h1 class="font-bold text-base">Comics</h1>
+<div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+  <!-- 2nd Column: Series-grouped Issues -->
+  <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
+    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2">
+      <span class="font-semibold text-xs opacity-80">{{ series_groups | length }} series</span>
     </div>
-    <div class="flex-1 overflow-y-auto divide-y divide-base-200">
+    <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="comic-list-pane">
       {% for series_name, issues in series_groups %}
-      <div class="p-2">
+      <div class="p-2" data-filter-text="{{ series_name | lower }}">
         <div class="text-xs font-bold uppercase tracking-wider opacity-70 px-1 mb-1">
           {{ series_name }}
         </div>
         <div class="space-y-1">
           {% for item, meta in issues %}
-          <div class="px-2 py-1.5 rounded hover:bg-base-200 cursor-pointer flex items-center justify-between {% if selected_item and selected_item.id == item.id %}bg-base-200 border-l-4 border-primary{% endif %}"
+          <div class="px-2 py-1.5 rounded hover:bg-base-200 cursor-pointer flex items-center justify-between {% if selected_item and selected_item.id == item.id %}bg-primary text-primary-content{% endif %}"
                hx-get="{{ base_url }}/comics/{{ item.id }}"
                hx-target="#comic-detail-pane"
                hx-swap="innerHTML">
@@ -31,15 +52,29 @@
     </div>
   </section>
 
-  <section class="flex-1 card bg-base-100 border border-base-300 shadow-sm overflow-y-auto" id="comic-detail-pane">
+  <!-- 3rd & 4th Columns: Item Details + Image -->
+  <section class="flex-1 flex min-w-0 overflow-hidden bg-base-100" id="comic-detail-pane">
     {% if selected_item %}
       {% include "comics/_detail.html" %}
     {% else %}
-      <div class="p-8 text-center opacity-60">
-        <p class="text-lg font-medium">No comics found</p>
-        <p class="text-sm mt-1">Add a Comics library in Settings and run a scan.</p>
+      <div class="flex-1 flex items-center justify-center p-8 text-center opacity-60">
+        <div>
+          <p class="text-lg font-medium">No comics found</p>
+          <p class="text-sm mt-1">Add a Comics library in Settings and run a scan.</p>
+        </div>
       </div>
     {% endif %}
   </section>
 </div>
+
+<script>
+  function filterRows(selector, q) {
+    var needle = (q || "").trim().toLowerCase();
+    var els = document.querySelectorAll(selector);
+    for (var i = 0; i < els.length; i++) {
+      var hay = els[i].getAttribute("data-filter-text") || "";
+      els[i].style.display = (!needle || hay.indexOf(needle) !== -1) ? "" : "none";
+    }
+  }
+</script>
 {% endblock %}

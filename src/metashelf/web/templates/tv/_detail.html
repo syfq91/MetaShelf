@@ -1,111 +1,165 @@
-<div class="p-4 space-y-4">
-  {% if toast %}
-  <div class="alert alert-info text-sm py-2">{{ toast }}</div>
-  {% endif %}
+<div class="flex-1 flex flex-col lg:flex-row min-w-0 h-full overflow-hidden">
+  <!-- 3rd Column: Item Details -->
+  <div class="flex-1 min-w-0 overflow-y-auto p-4 space-y-4">
+    {% if toast %}
+    <div class="alert alert-info text-sm py-2">{{ toast }}</div>
+    {% endif %}
 
-  <!-- Show Toolbar -->
-  <div class="bg-base-200 border border-base-300 rounded-box p-3">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <button type="button"
-              class="btn btn-xs {% if item.id == show_item.id %}btn-primary{% else %}btn-ghost{% endif %}"
-              hx-get="{{ base_url }}/tv/{{ show_item.id }}"
-              hx-target="#tv-detail-pane"
-              hx-swap="innerHTML">
-        Show: {{ show_item.title }}
-      </button>
-      <div class="flex gap-2">
-        <button type="button" class="btn btn-primary btn-xs"
+    <!-- Hidden/inline action triggers for top toolbar & shortcuts -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-base-300">
+      <div class="min-w-0">
+        {% if show_meta %}
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl font-bold truncate">{{ show_meta.title }}</h2>
+          <span class="badge badge-sm">{{ item.state }}</span>
+        </div>
+        {% elif season_meta %}
+        <h2 class="text-xl font-bold truncate">{{ show_item.title }} — {{ season_meta.title }}</h2>
+        {% elif ep_meta %}
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl font-bold truncate">S{{ "%02d" | format(ep_meta.season) }}E{{ "%02d" | format(ep_meta.episode) }} — {{ ep_meta.title }}</h2>
+          <span class="badge badge-sm">{{ item.state }}</span>
+        </div>
+        {% endif %}
+        <p class="text-xs font-mono opacity-60 truncate mt-0.5">{{ item.rel_path }}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 flex-shrink-0">
+        <button type="button" data-action="scrape" class="btn btn-primary btn-xs"
                 hx-get="{{ base_url }}/tv/{{ show_item.id }}/scrape"
                 hx-target="#modal-container"
                 hx-swap="innerHTML">
           Search Online
         </button>
-        <button type="button" class="btn btn-secondary btn-xs"
+        <button type="button" data-action="fetch-episodes" class="btn btn-secondary btn-xs"
                 hx-post="{{ base_url }}/tv/{{ show_item.id }}/fetch-episodes"
                 hx-target="#tv-detail-pane"
                 hx-swap="innerHTML">
           Fetch All Episodes
         </button>
+        {% if show_meta or ep_meta %}
+        <button type="button" data-action="save" class="btn btn-success btn-xs"
+                hx-post="{{ base_url }}/tv/{{ item.id }}/save"
+                hx-target="#tv-detail-pane"
+                hx-swap="innerHTML">
+          {% if show_meta %}Save tvshow.nfo{% else %}Save Episode NFO{% endif %}
+        </button>
+        {% endif %}
       </div>
     </div>
+
+    {% if show_meta %}
+    <form hx-post="{{ base_url }}/tv/{{ item.id }}/edit"
+          hx-target="#tv-detail-pane"
+          hx-swap="innerHTML"
+          class="space-y-3">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Title</span></label>
+          <input type="text" name="title" value="{{ show_meta.title }}" placeholder="Title" class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Year</span></label>
+          <input type="text" name="year" value="{{ show_meta.year or '' }}" placeholder="Year" class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Status</span></label>
+          <input type="text" name="status_val" value="{{ show_meta.status }}" placeholder="Status" class="input input-bordered input-sm" />
+        </div>
+      </div>
+      <div class="form-control">
+        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Genres</span></label>
+        <input type="text" name="genres" value="{{ show_meta.genres | join(', ') }}" placeholder="Genres" class="input input-bordered input-sm w-full" />
+      </div>
+      <div class="form-control">
+        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Overview</span></label>
+        <textarea name="plot" rows="6" class="textarea textarea-bordered textarea-sm w-full">{{ show_meta.plot }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
+    </form>
+    {% elif season_meta %}
+    <div class="space-y-2 text-sm">
+      <p class="opacity-70">Season {{ season_meta.season_number }} of <span class="font-medium">{{ show_item.title }}</span>.</p>
+      <p class="text-xs opacity-60">Select an episode in the list to edit episode metadata.</p>
+    </div>
+    {% elif ep_meta %}
+    <form hx-post="{{ base_url }}/tv/{{ item.id }}/edit"
+          hx-target="#tv-detail-pane"
+          hx-swap="innerHTML"
+          class="space-y-3">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Name</span></label>
+          <input type="text" name="title" value="{{ ep_meta.title }}" placeholder="Episode Title" class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">First Aired</span></label>
+          <input type="text" name="aired" value="{{ ep_meta.aired }}" placeholder="Aired (YYYY-MM-DD)" class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Show Title</span></label>
+          <input type="text" value="{{ show_item.title }}" readonly class="input input-bordered input-sm opacity-70" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="form-control">
+            <label class="label py-0.5"><span class="label-text text-xs opacity-70">Season</span></label>
+            <input type="text" value="{{ ep_meta.season }}" readonly class="input input-bordered input-sm opacity-70" />
+          </div>
+          <div class="form-control">
+            <label class="label py-0.5"><span class="label-text text-xs opacity-70">Episode</span></label>
+            <input type="text" value="{{ ep_meta.episode }}" readonly class="input input-bordered input-sm opacity-70" />
+          </div>
+        </div>
+      </div>
+      <div class="form-control">
+        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Overview</span></label>
+        <textarea name="plot" rows="6" class="textarea textarea-bordered textarea-sm w-full">{{ ep_meta.plot }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
+    </form>
+    {% endif %}
   </div>
 
-  <!-- Detail Editor -->
-  {% if show_meta %}
-  <div class="flex items-start gap-4">
-    <div class="w-24 h-36 bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center flex-shrink-0">
-      {% if 'poster' in art_map %}
-      <img src="{{ base_url }}/tv/{{ item.id }}/artwork/poster" alt="Poster" class="w-full h-full object-cover" />
-      {% else %}
-      <span class="text-xs opacity-40">No Poster</span>
-      {% endif %}
-    </div>
-    <div class="flex-1 space-y-2">
-      <div class="flex items-center gap-2">
-        <h2 class="text-xl font-bold">{{ show_meta.title }}</h2>
-        <span class="badge badge-sm">{{ item.state }}</span>
+  <!-- 4th Column: Image / Artwork -->
+  <aside class="w-full lg:w-64 xl:w-72 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-base-300 bg-base-200/30 overflow-y-auto p-4 space-y-4">
+    {% if ep_meta %}
+    <div class="space-y-1.5">
+      <div class="text-xs font-semibold opacity-70">Thumbnail</div>
+      <div class="w-full aspect-video bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center">
+        {% if 'thumb' in art_map %}
+        <img src="{{ base_url }}/tv/{{ item.id }}/artwork/thumb" alt="Thumb" class="w-full h-full object-cover" />
+        {% else %}
+        <span class="text-xs opacity-40">No Thumb</span>
+        {% endif %}
       </div>
-      <button type="button" class="btn btn-success btn-xs"
-              hx-post="{{ base_url }}/tv/{{ item.id }}/save"
-              hx-target="#tv-detail-pane"
-              hx-swap="innerHTML">Save tvshow.nfo</button>
     </div>
-  </div>
-  <form hx-post="{{ base_url }}/tv/{{ item.id }}/edit"
-        hx-target="#tv-detail-pane"
-        hx-swap="innerHTML"
-        class="space-y-3">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <input type="text" name="title" value="{{ show_meta.title }}" placeholder="Title" class="input input-bordered input-sm" />
-      <input type="text" name="year" value="{{ show_meta.year or '' }}" placeholder="Year" class="input input-bordered input-sm" />
-      <input type="text" name="status_val" value="{{ show_meta.status }}" placeholder="Status" class="input input-bordered input-sm" />
+    {% else %}
+    <div class="space-y-1.5">
+      <div class="text-xs font-semibold opacity-70">{% if season_meta %}Season Poster{% else %}Poster{% endif %}</div>
+      <div class="w-full aspect-[2/3] bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center">
+        {% if 'poster' in art_map %}
+        <img src="{{ base_url }}/tv/{{ item.id }}/artwork/poster" alt="Poster" class="w-full h-full object-cover" />
+        {% else %}
+        <span class="text-xs opacity-40">No Poster</span>
+        {% endif %}
+      </div>
     </div>
-    <input type="text" name="genres" value="{{ show_meta.genres | join(', ') }}" placeholder="Genres" class="input input-bordered input-sm w-full" />
-    <textarea name="plot" rows="3" class="textarea textarea-bordered textarea-sm w-full">{{ show_meta.plot }}</textarea>
-    <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
-  </form>
-  {% elif season_meta %}
-  <div class="flex items-center gap-4">
-    <div class="w-24 h-36 bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center">
-      {% if 'poster' in art_map %}
-      <img src="{{ base_url }}/tv/{{ item.id }}/artwork/poster" alt="Season Poster" class="w-full h-full object-cover" />
-      {% else %}
-      <span class="text-xs opacity-40">No Poster</span>
-      {% endif %}
+    {% if 'fanart' in art_map %}
+    <div class="space-y-1.5">
+      <div class="text-xs font-semibold opacity-70">Fanart</div>
+      <div class="w-full aspect-video bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center">
+        <img src="{{ base_url }}/tv/{{ item.id }}/artwork/fanart" alt="Fanart" class="w-full h-full object-cover" />
+      </div>
     </div>
-    <div>
-      <h2 class="text-lg font-bold">{{ season_meta.title }}</h2>
-      <p class="text-xs opacity-60">Season {{ season_meta.season_number }}</p>
+    {% endif %}
+    {% if 'banner' in art_map %}
+    <div class="space-y-1.5">
+      <div class="text-xs font-semibold opacity-70">Banner</div>
+      <div class="w-full bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center">
+        <img src="{{ base_url }}/tv/{{ item.id }}/artwork/banner" alt="Banner" class="w-full h-auto object-cover" />
+      </div>
     </div>
-  </div>
-  {% elif ep_meta %}
-  <div class="flex items-start gap-4">
-    <div class="w-40 h-24 bg-base-200 rounded-box overflow-hidden border border-base-300 flex items-center justify-center flex-shrink-0">
-      {% if 'thumb' in art_map %}
-      <img src="{{ base_url }}/tv/{{ item.id }}/artwork/thumb" alt="Thumb" class="w-full h-full object-cover" />
-      {% else %}
-      <span class="text-xs opacity-40">No Thumb</span>
-      {% endif %}
-    </div>
-    <div class="flex-1 space-y-2">
-      <h2 class="text-lg font-bold">S{{ "%02d" | format(ep_meta.season) }}E{{ "%02d" | format(ep_meta.episode) }} — {{ ep_meta.title }}</h2>
-      <p class="text-xs font-mono opacity-60">{{ item.rel_path }}</p>
-      <button type="button" class="btn btn-success btn-xs"
-              hx-post="{{ base_url }}/tv/{{ item.id }}/save"
-              hx-target="#tv-detail-pane"
-              hx-swap="innerHTML">Save Episode NFO</button>
-    </div>
-  </div>
-  <form hx-post="{{ base_url }}/tv/{{ item.id }}/edit"
-        hx-target="#tv-detail-pane"
-        hx-swap="innerHTML"
-        class="space-y-3">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <input type="text" name="title" value="{{ ep_meta.title }}" placeholder="Episode Title" class="input input-bordered input-sm" />
-      <input type="text" name="aired" value="{{ ep_meta.aired }}" placeholder="Aired (YYYY-MM-DD)" class="input input-bordered input-sm" />
-    </div>
-    <textarea name="plot" rows="3" class="textarea textarea-bordered textarea-sm w-full">{{ ep_meta.plot }}</textarea>
-    <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
-  </form>
-  {% endif %}
+    {% endif %}
+    {% endif %}
+  </aside>
 </div>
