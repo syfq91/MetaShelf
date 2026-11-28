@@ -110,6 +110,74 @@ async def _music_detail_context(
     }
 
 
+async def _load_artists_with_trees(
+    session: AsyncSession,
+    artists: list[Item],
+) -> list[dict[str, Any]]:
+    """Build Artist -> Album -> Track tree for the 2nd-column list in 2 batch queries."""
+    if not artists:
+        return []
+
+    artist_ids = [a.id for a in artists]
+    albums = list(
+        (
+            await session.execute(
+                select(Item)
+                .where(Item.parent_id.in_(artist_ids), Item.kind == ItemKind.ALBUM.value)
+                .order_by(Item.year.asc().nullslast(), Item.title.asc())
+            )
+        ).scalars().all()
+    )
+
+    album_ids = [alb.id for alb in albums]
+    tracks: list[Item] = []
+    if album_ids:
+        tracks = list(
+            (
+                await session.execute(
+                    select(Item)
+                    .where(Item.parent_id.in_(album_ids), Item.kind == ItemKind.TRACK.value)
+                    .order_by(Item.rel_path)
+                )
+            ).scalars().all()
+        )
+
+    tracks_by_album: dict[int, list[dict[str, Any]]] = {}
+    for tr in tracks:
+        if tr.parent_id is None:
+            continue
+        tr_meta = TrackMetadata.model_validate_json(tr.metadata_json or "{}")
+        tracks_by_album.setdefault(tr.parent_id, []).append(
+            {
+                "item": tr,
+                "track_number": tr_meta.track_number,
+                "disc_number": tr_meta.disc_number,
+                "sort_key": (tr_meta.disc_number, tr_meta.track_number, tr.rel_path),
+            }
+        )
+    for tr_list in tracks_by_album.values():
+        tr_list.sort(key=lambda t: t["sort_key"])
+
+    albums_by_artist: dict[int, list[dict[str, Any]]] = {}
+    for alb in albums:
+        if alb.parent_id is None:
+            continue
+        albums_by_artist.setdefault(alb.parent_id, []).append(
+            {
+                "album": alb,
+                "tracks": tracks_by_album.get(alb.id, []),
+            }
+        )
+
+    return [
+        {
+            "artist": a,
+            "albums": albums_by_artist.get(a.id, []),
+        }
+        for a in artists
+    ]
+
+
 @router.get("", response_class=HTMLResponse)
 async def music_index(
     request: Request,
@@ -118,12 +186,14 @@ async def music_index(
     q: Annotated[str, Query()] = "",
     selected_id: Annotated[int | None, Query()] = None,
 ) -> HTMLResponse:
-    """Render two-pane Music library view."""
+    """Render Music library view with expandable Artist -> Album -> Track tree."""
     nav_ctx = await get_nav_context(session)
     stmt = select(Item).where(Item.kind == ItemKind.ARTIST.value)
     if q.strip():
         stmt = stmt.where(Item.title.ilike(f"%{q.strip()}%"))
     artists = list((await session.execute(stmt.order_by(Item.title.asc()))).scalars().all())
+    artist_trees = await _load_artists_with_trees(session, artists)
+    total_tracks = sum(len(alb["tracks"]) for t in artist_trees for alb in t["albums"])
 
     selected_item: Item | None = None
     if selected_id is not None:
@@ -139,6 +209,8 @@ async def music_index(
             "active_nav": "music",
             "q": q,
             "artists": artists,
+            "artist_trees": artist_trees,
+            "total_tracks": total_tracks,
             "selected_item": selected_item,
             **nav_ctx,
             **detail_ctx,

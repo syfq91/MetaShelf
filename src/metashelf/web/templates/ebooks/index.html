@@ -23,20 +23,55 @@
 
 {% block content %}
 <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-  <!-- 2nd Column: Ebooks List -->
+  <!-- 2nd Column: Series/Author -> Book Tree -->
   <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
-    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2">
-      <span class="font-semibold text-xs opacity-80">{{ items | length }} ebooks</span>
+    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 bg-base-100">
+      <span class="font-semibold text-xs opacity-80">{{ ebook_groups | length }} groups, {{ items | length }} ebooks</span>
     </div>
     <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="ebook-list-pane">
-      {% for item in items %}
-      <div data-filter-text="{{ item.title | lower }}"
-           class="px-3 py-2 hover:bg-base-200 cursor-pointer {% if selected_item and selected_item.id == item.id %}bg-primary text-primary-content{% endif %}"
-           hx-get="{{ base_url }}/ebooks/{{ item.id }}"
-           hx-target="#ebook-detail-pane"
-           hx-swap="innerHTML">
-        <div class="font-medium text-sm truncate">{{ item.title }}</div>
-        <div class="text-xs opacity-70">{{ item.year or "—" }} · {{ item.state }}</div>
+      {% for group_name, books in ebook_groups %}
+      {% set group_id = loop.index %}
+      {% set ns = namespace(expanded=false) %}
+      {% for b, _ in books %}
+        {% if selected_item and selected_item.id == b.id %}{% set ns.expanded = true %}{% endif %}
+      {% endfor %}
+      <div data-filter-text="{{ group_name | lower }} {% for b, _ in books %}{{ b.title | lower }} {% endfor %}">
+        <!-- Group Title Row -->
+        <div class="px-2 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-1.5"
+             onclick="toggleTreeContainer('ebook-group-{{ group_id }}', document.getElementById('ebook-group-toggle-{{ group_id }}'))">
+          <button type="button"
+                  id="ebook-group-toggle-{{ group_id }}"
+                  aria-expanded="{{ 'true' if ns.expanded else 'false' }}"
+                  aria-controls="ebook-group-{{ group_id }}"
+                  aria-label="Toggle {{ group_name }}"
+                  class="w-5 h-5 flex items-center justify-center rounded hover:bg-base-300/50 text-xs flex-shrink-0 opacity-75"
+                  onclick="event.stopPropagation(); toggleTreeContainer('ebook-group-{{ group_id }}', this)">
+            {{ '▾' if ns.expanded else '▸' }}
+          </button>
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-sm truncate">{{ group_name }}</div>
+            <div class="text-xs opacity-70">{{ books | length }} {{ 'book' if books | length == 1 else 'books' }}</div>
+          </div>
+        </div>
+
+        <!-- Books under Title -->
+        <div id="ebook-group-{{ group_id }}" class="{% if not ns.expanded %}hidden{% endif %} bg-base-200/30 border-t border-base-200">
+          {% for item, meta in books %}
+          <div data-tree-node
+               class="pl-8 pr-3 py-1.5 hover:bg-base-200 cursor-pointer flex items-center gap-2 text-xs {% if selected_item and selected_item.id == item.id %}bg-primary text-primary-content font-medium{% endif %}"
+               hx-get="{{ base_url }}/ebooks/{{ item.id }}"
+               hx-target="#ebook-detail-pane"
+               hx-swap="innerHTML"
+               onclick="selectTreeNode('#ebook-list-pane', this)">
+            {% if meta.series_index %}
+            <span class="font-mono text-[11px] opacity-75 flex-shrink-0">#{{ meta.series_index }}</span>
+            {% endif %}
+            <span class="truncate flex-1">{{ meta.title or item.title }}</span>
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {% if item.state == 'matched' %}bg-success{% elif item.state == 'dirty' %}bg-warning{% elif item.state == 'error' %}bg-error{% else %}bg-base-content/25{% endif %}"
+                  title="{{ item.state }}"></span>
+          </div>
+          {% endfor %}
+        </div>
       </div>
       {% else %}
       <div class="p-4 text-xs opacity-60 text-center">No ebooks scanned yet.</div>
@@ -60,6 +95,24 @@
 </div>
 
 <script>
+  function toggleTreeContainer(containerId, btn) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    var isHidden = el.classList.toggle("hidden");
+    if (btn) {
+      btn.textContent = isHidden ? "▸" : "▾";
+      btn.setAttribute("aria-expanded", isHidden ? "false" : "true");
+    }
+  }
+  function selectTreeNode(listSelector, node) {
+    var nodes = document.querySelectorAll(listSelector + " [data-tree-node]");
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.remove("bg-primary", "text-primary-content", "font-medium");
+    }
+    if (node) {
+      node.classList.add("bg-primary", "text-primary-content");
+    }
+  }
   function filterRows(selector, q) {
     var needle = (q || "").trim().toLowerCase();
     var els = document.querySelectorAll(selector);

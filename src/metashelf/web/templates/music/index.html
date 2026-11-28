@@ -15,7 +15,7 @@
 
 {% block toolbar_filter %}
 <form action="{{ base_url }}/music" method="get" class="hidden sm:flex" onsubmit="return false;">
-  <input type="search" placeholder="Filter artists..."
+  <input type="search" placeholder="Filter music..."
          oninput="filterRows('#music-list-pane [data-filter-text]', this.value)"
          class="input input-xs input-bordered w-44 md:w-56" />
 </form>
@@ -23,21 +23,87 @@
 
 {% block content %}
 <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-  <!-- 2nd Column: Artists List -->
+  <!-- 2nd Column: Artist -> Album -> Track Tree -->
   <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
-    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2">
-      <span class="font-semibold text-xs opacity-80">{{ artists | length }} artists</span>
+    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 bg-base-100">
+      <span class="font-semibold text-xs opacity-80">{{ artists | length }} artists, {{ total_tracks }} tracks</span>
     </div>
     <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="music-list-pane">
-      {% for a in artists %}
-      <div data-filter-text="{{ a.title | lower }}"
-           class="px-3 py-2 hover:bg-base-200 cursor-pointer flex items-center justify-between gap-2 {% if artist_item and artist_item.id == a.id %}bg-primary text-primary-content{% endif %}"
-           hx-get="{{ base_url }}/music/{{ a.id }}"
-           hx-target="#music-detail-pane"
-           hx-swap="innerHTML">
-        <div class="min-w-0">
-          <div class="font-medium text-sm truncate">{{ a.title }}</div>
-          <div class="text-xs opacity-70">{{ a.state }}</div>
+      {% for entry in artist_trees %}
+      {% set a = entry.artist %}
+      {% set artist_expanded = (artist_item and artist_item.id == a.id) %}
+      {% set artist_tr_count = namespace(val=0) %}
+      {% for alb in entry.albums %}{% set artist_tr_count.val = artist_tr_count.val + (alb.tracks | length) %}{% endfor %}
+      <div data-filter-text="{{ a.title | lower }}">
+        <!-- Artist Row -->
+        <div data-tree-node
+             class="px-2 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == a.id %}bg-primary text-primary-content{% endif %}"
+             hx-get="{{ base_url }}/music/{{ a.id }}"
+             hx-target="#music-detail-pane"
+             hx-swap="innerHTML"
+             onclick="selectTreeNode('#music-list-pane', this); expandTreeContainer('music-artist-children-{{ a.id }}', 'music-artist-toggle-{{ a.id }}')">
+          <button type="button"
+                  id="music-artist-toggle-{{ a.id }}"
+                  aria-expanded="{{ 'true' if artist_expanded else 'false' }}"
+                  aria-controls="music-artist-children-{{ a.id }}"
+                  aria-label="Toggle {{ a.title }}"
+                  class="w-5 h-5 flex items-center justify-center rounded hover:bg-base-300/50 text-xs flex-shrink-0 opacity-75"
+                  onclick="event.stopPropagation(); toggleTreeContainer('music-artist-children-{{ a.id }}', this)">
+            {{ '▾' if artist_expanded else '▸' }}
+          </button>
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-sm truncate">{{ a.title }}</div>
+            <div class="text-xs opacity-70">{{ entry.albums | length }} albums · {{ artist_tr_count.val }} tracks · {{ a.state }}</div>
+          </div>
+        </div>
+
+        <!-- Albums & Tracks under Artist -->
+        <div id="music-artist-children-{{ a.id }}" class="{% if not artist_expanded %}hidden{% endif %} bg-base-200/30 border-t border-base-200">
+          {% for alb_entry in entry.albums %}
+          {% set alb = alb_entry.album %}
+          {% set alb_expanded = artist_expanded %}
+          <div>
+            <!-- Album Row -->
+            <div data-tree-node
+                 class="pl-6 pr-2 py-1.5 hover:bg-base-200 cursor-pointer flex items-center gap-1.5 {% if selected_item and selected_item.id == alb.id %}bg-primary text-primary-content{% endif %}"
+                 hx-get="{{ base_url }}/music/{{ alb.id }}"
+                 hx-target="#music-detail-pane"
+                 hx-swap="innerHTML"
+                 onclick="selectTreeNode('#music-list-pane', this); expandTreeContainer('music-album-children-{{ alb.id }}', 'music-album-toggle-{{ alb.id }}')">
+              <button type="button"
+                      id="music-album-toggle-{{ alb.id }}"
+                      aria-expanded="{{ 'true' if alb_expanded else 'false' }}"
+                      aria-controls="music-album-children-{{ alb.id }}"
+                      aria-label="Toggle {{ alb.title }}"
+                      class="w-4 h-4 flex items-center justify-center rounded hover:bg-base-300/50 text-[11px] flex-shrink-0 opacity-75"
+                      onclick="event.stopPropagation(); toggleTreeContainer('music-album-children-{{ alb.id }}', this)">
+                {{ '▾' if alb_expanded else '▸' }}
+              </button>
+              <span class="text-xs font-semibold opacity-85 truncate flex-1">{{ alb.title }}{% if alb.year %} ({{ alb.year }}){% endif %}</span>
+              <span class="text-[11px] opacity-60 flex-shrink-0">{{ alb_entry.tracks | length }}</span>
+            </div>
+
+            <!-- Track Rows -->
+            <div id="music-album-children-{{ alb.id }}" class="{% if not alb_expanded %}hidden{% endif %}">
+              {% for tr in alb_entry.tracks %}
+              {% set tr_item = tr.item %}
+              <div data-tree-node
+                   class="pl-11 pr-3 py-1 hover:bg-base-200 cursor-pointer flex items-center gap-2 text-xs {% if selected_item and selected_item.id == tr_item.id %}bg-primary text-primary-content font-medium{% endif %}"
+                   hx-get="{{ base_url }}/music/{{ tr_item.id }}"
+                   hx-target="#music-detail-pane"
+                   hx-swap="innerHTML"
+                   onclick="selectTreeNode('#music-list-pane', this)">
+                <span class="font-mono text-[11px] opacity-75 flex-shrink-0">{{ "%02d" | format(tr.track_number) }}</span>
+                <span class="truncate flex-1">{{ tr_item.title }}</span>
+                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {% if tr_item.state == 'matched' %}bg-success{% elif tr_item.state == 'dirty' %}bg-warning{% elif tr_item.state == 'error' %}bg-error{% else %}bg-base-content/25{% endif %}"
+                      title="{{ tr_item.state }}"></span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="pl-8 py-1.5 text-xs opacity-50">No albums</div>
+          {% endfor %}
         </div>
       </div>
       {% else %}
@@ -62,6 +128,36 @@
 </div>
 
 <script>
+  function toggleTreeContainer(containerId, btn) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    var isHidden = el.classList.toggle("hidden");
+    if (btn) {
+      btn.textContent = isHidden ? "▸" : "▾";
+      btn.setAttribute("aria-expanded", isHidden ? "false" : "true");
+    }
+  }
+  function expandTreeContainer(containerId, btnId) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    if (el.classList.contains("hidden")) {
+      el.classList.remove("hidden");
+      var btn = document.getElementById(btnId);
+      if (btn) {
+        btn.textContent = "▾";
+        btn.setAttribute("aria-expanded", "true");
+      }
+    }
+  }
+  function selectTreeNode(listSelector, node) {
+    var nodes = document.querySelectorAll(listSelector + " [data-tree-node]");
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.remove("bg-primary", "text-primary-content", "font-medium");
+    }
+    if (node) {
+      node.classList.add("bg-primary", "text-primary-content");
+    }
+  }
   function filterRows(selector, q) {
     var needle = (q || "").trim().toLowerCase();
     var els = document.querySelectorAll(selector);

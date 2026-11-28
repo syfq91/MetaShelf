@@ -47,6 +47,15 @@ async def _ebook_detail_context(
     }
 
 
+def _group_ebooks(items: list[Item]) -> list[tuple[str, list[tuple[Item, EbookMetadata]]]]:
+    groups: dict[str, list[tuple[Item, EbookMetadata]]] = {}
+    for item in items:
+        meta = EbookMetadata.model_validate_json(item.metadata_json or "{}")
+        group_name = meta.series or (meta.authors[0] if meta.authors else "Ungrouped")
+        groups.setdefault(group_name, []).append((item, meta))
+    return sorted(groups.items(), key=lambda pair: pair[0].lower())
+
+
 @router.get("", response_class=HTMLResponse)
 async def ebooks_index(
     request: Request,
@@ -55,12 +64,13 @@ async def ebooks_index(
     q: Annotated[str, Query()] = "",
     selected_id: Annotated[int | None, Query()] = None,
 ) -> HTMLResponse:
-    """Render two-pane Ebooks library view."""
+    """Render Ebooks library view grouped by series/author."""
     nav_ctx = await get_nav_context(session)
     stmt = select(Item).where(Item.kind == ItemKind.EBOOK.value)
     if q.strip():
         stmt = stmt.where(Item.title.ilike(f"%{q.strip()}%"))
     items = list((await session.execute(stmt.order_by(Item.title.asc()))).scalars().all())
+    ebook_groups = _group_ebooks(items)
 
     selected_item: Item | None = None
     if selected_id is not None:
@@ -76,6 +86,7 @@ async def ebooks_index(
             "active_nav": "ebooks",
             "q": q,
             "items": items,
+            "ebook_groups": ebook_groups,
             "selected_item": selected_item,
             **nav_ctx,
             **detail_ctx,

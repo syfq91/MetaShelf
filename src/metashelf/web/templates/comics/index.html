@@ -23,25 +23,50 @@
 
 {% block content %}
 <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-  <!-- 2nd Column: Series-grouped Issues -->
+  <!-- 2nd Column: Series -> Issues Tree -->
   <section class="w-full lg:w-80 xl:w-96 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-base-300 bg-base-100 flex flex-col overflow-hidden">
-    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2">
+    <div class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 bg-base-100">
       <span class="font-semibold text-xs opacity-80">{{ series_groups | length }} series</span>
     </div>
     <div class="flex-1 overflow-y-auto divide-y divide-base-200" id="comic-list-pane">
       {% for series_name, issues in series_groups %}
-      <div class="p-2" data-filter-text="{{ series_name | lower }}">
-        <div class="text-xs font-bold uppercase tracking-wider opacity-70 px-1 mb-1">
-          {{ series_name }}
+      {% set group_id = loop.index %}
+      {% set ns = namespace(expanded=false) %}
+      {% for it, _ in issues %}
+        {% if selected_item and selected_item.id == it.id %}{% set ns.expanded = true %}{% endif %}
+      {% endfor %}
+      <div data-filter-text="{{ series_name | lower }} {% for it, m in issues %}{{ (m.title or it.title) | lower }} {% endfor %}">
+        <!-- Series Row -->
+        <div class="px-2 py-2 hover:bg-base-200 cursor-pointer flex items-center gap-1.5"
+             onclick="toggleTreeContainer('comic-series-{{ group_id }}', document.getElementById('comic-series-toggle-{{ group_id }}'))">
+          <button type="button"
+                  id="comic-series-toggle-{{ group_id }}"
+                  aria-expanded="{{ 'true' if ns.expanded else 'false' }}"
+                  aria-controls="comic-series-{{ group_id }}"
+                  aria-label="Toggle {{ series_name }}"
+                  class="w-5 h-5 flex items-center justify-center rounded hover:bg-base-300/50 text-xs flex-shrink-0 opacity-75"
+                  onclick="event.stopPropagation(); toggleTreeContainer('comic-series-{{ group_id }}', this)">
+            {{ '▾' if ns.expanded else '▸' }}
+          </button>
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-sm truncate">{{ series_name }}</div>
+            <div class="text-xs opacity-70">{{ issues | length }} {{ 'issue' if issues | length == 1 else 'issues' }}</div>
+          </div>
         </div>
-        <div class="space-y-1">
+
+        <!-- Issues under Series -->
+        <div id="comic-series-{{ group_id }}" class="{% if not ns.expanded %}hidden{% endif %} bg-base-200/30 border-t border-base-200">
           {% for item, meta in issues %}
-          <div class="px-2 py-1.5 rounded hover:bg-base-200 cursor-pointer flex items-center justify-between {% if selected_item and selected_item.id == item.id %}bg-primary text-primary-content{% endif %}"
+          <div data-tree-node
+               class="pl-8 pr-3 py-1.5 hover:bg-base-200 cursor-pointer flex items-center gap-2 text-xs {% if selected_item and selected_item.id == item.id %}bg-primary text-primary-content font-medium{% endif %}"
                hx-get="{{ base_url }}/comics/{{ item.id }}"
                hx-target="#comic-detail-pane"
-               hx-swap="innerHTML">
-            <span class="text-sm truncate">#{{ meta.number or '?' }} — {{ meta.title or item.title }}</span>
-            <span class="badge badge-xs">{{ item.state }}</span>
+               hx-swap="innerHTML"
+               onclick="selectTreeNode('#comic-list-pane', this)">
+            <span class="font-mono text-[11px] opacity-75 flex-shrink-0">#{{ meta.number or '?' }}</span>
+            <span class="truncate flex-1">{{ meta.title or item.title }}</span>
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {% if item.state == 'matched' %}bg-success{% elif item.state == 'dirty' %}bg-warning{% elif item.state == 'error' %}bg-error{% else %}bg-base-content/25{% endif %}"
+                  title="{{ item.state }}"></span>
           </div>
           {% endfor %}
         </div>
@@ -68,6 +93,24 @@
 </div>
 
 <script>
+  function toggleTreeContainer(containerId, btn) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    var isHidden = el.classList.toggle("hidden");
+    if (btn) {
+      btn.textContent = isHidden ? "▸" : "▾";
+      btn.setAttribute("aria-expanded", isHidden ? "false" : "true");
+    }
+  }
+  function selectTreeNode(listSelector, node) {
+    var nodes = document.querySelectorAll(listSelector + " [data-tree-node]");
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.remove("bg-primary", "text-primary-content", "font-medium");
+    }
+    if (node) {
+      node.classList.add("bg-primary", "text-primary-content");
+    }
+  }
   function filterRows(selector, q) {
     var needle = (q || "").trim().toLowerCase();
     var els = document.querySelectorAll(selector);

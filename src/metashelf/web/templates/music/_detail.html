@@ -5,45 +5,13 @@
     <div class="alert alert-info text-sm py-2">{{ toast }}</div>
     {% endif %}
 
-    <!-- Artist -> Album -> Track Switcher -->
-    <div class="bg-base-200 border border-base-300 rounded-box p-3 space-y-2">
-      <button type="button"
-              class="btn btn-xs {% if item.id == artist_item.id %}btn-primary{% else %}btn-ghost{% endif %}"
-              hx-get="{{ base_url }}/music/{{ artist_item.id }}"
-              hx-target="#music-detail-pane"
-              hx-swap="innerHTML">
-        Artist: {{ artist_item.title }}
-      </button>
-      <div class="flex flex-wrap gap-3 text-xs">
-        {% for node in tree %}
-        <div class="space-y-1">
-          <button type="button"
-                  class="btn btn-xs {% if item.id == node.album.id %}btn-primary{% else %}btn-outline{% endif %}"
-                  hx-get="{{ base_url }}/music/{{ node.album.id }}"
-                  hx-target="#music-detail-pane"
-                  hx-swap="innerHTML">
-            {{ node.album.title }} ({{ node.album.year or '—' }})
-          </button>
-          <div class="flex flex-wrap gap-1 pl-1">
-            {% for tr in node.tracks %}
-            <button type="button"
-                    class="badge badge-sm cursor-pointer {% if item.id == tr.id %}badge-primary{% else %}badge-ghost{% endif %}"
-                    hx-get="{{ base_url }}/music/{{ tr.id }}"
-                    hx-target="#music-detail-pane"
-                    hx-swap="innerHTML">
-              {{ tr.title }}
-            </button>
-            {% endfor %}
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
     {% if artist_meta %}
     <div class="flex items-center justify-between pb-2 border-b border-base-300">
-      <h2 class="text-xl font-bold">{{ artist_meta.name }}</h2>
-      <button type="button" data-action="save" class="btn btn-success btn-xs"
+      <div class="min-w-0">
+        <h2 class="text-xl font-bold truncate">{{ artist_meta.name }}</h2>
+        <p class="text-xs font-mono opacity-60 truncate mt-0.5">{{ item.rel_path }}</p>
+      </div>
+      <button type="button" data-action="save" class="btn btn-success btn-xs flex-shrink-0"
               hx-post="{{ base_url }}/music/{{ item.id }}/save"
               hx-target="#music-detail-pane"
               hx-swap="innerHTML">Save artist.nfo</button>
@@ -52,17 +20,23 @@
           hx-target="#music-detail-pane"
           hx-swap="innerHTML"
           class="space-y-3">
-      <input type="text" name="title" value="{{ artist_meta.name }}" class="input input-bordered input-sm w-full" />
-      <textarea name="biography" rows="6" placeholder="Biography" class="textarea textarea-bordered textarea-sm w-full">{{ artist_meta.biography }}</textarea>
+      <div class="form-control">
+        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Artist</span></label>
+        <input type="text" name="title" value="{{ artist_meta.name }}" class="input input-bordered input-sm w-full" />
+      </div>
+      <div class="form-control">
+        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Biography</span></label>
+        <textarea name="biography" rows="6" placeholder="Biography" class="textarea textarea-bordered textarea-sm w-full">{{ artist_meta.biography }}</textarea>
+      </div>
       <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
     </form>
     {% elif album_meta %}
     <div class="flex items-center justify-between pb-2 border-b border-base-300">
-      <div>
-        <h2 class="text-xl font-bold">{{ album_meta.title }}</h2>
-        <p class="text-xs opacity-70">{{ album_meta.artist }} · {{ album_meta.label or '—' }}</p>
+      <div class="min-w-0">
+        <h2 class="text-xl font-bold truncate">{{ album_meta.title }}</h2>
+        <p class="text-xs opacity-70 truncate">{{ album_meta.artist }} · {{ album_meta.label or '—' }}</p>
       </div>
-      <button type="button" data-action="save" class="btn btn-success btn-xs"
+      <button type="button" data-action="save" class="btn btn-success btn-xs flex-shrink-0"
               hx-post="{{ base_url }}/music/{{ item.id }}/save"
               hx-target="#music-detail-pane"
               hx-swap="innerHTML">Save album.nfo</button>
@@ -72,21 +46,33 @@
           hx-swap="innerHTML"
           class="space-y-3">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <input type="text" name="title" value="{{ album_meta.title }}" class="input input-bordered input-sm" />
-        <input type="text" name="year" value="{{ album_meta.year or '' }}" class="input input-bordered input-sm" />
-        <input type="text" name="label" value="{{ album_meta.label }}" placeholder="Label" class="input input-bordered input-sm" />
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Title</span></label>
+          <input type="text" name="title" value="{{ album_meta.title }}" class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Year</span></label>
+          <input type="text" name="year" value="{{ album_meta.year or '' }}" class="input input-bordered input-sm" />
+        </div>
+        <div class="form-control">
+          <label class="label py-0.5"><span class="label-text text-xs opacity-70">Label</span></label>
+          <input type="text" name="label" value="{{ album_meta.label }}" placeholder="Label" class="input input-bordered input-sm" />
+        </div>
       </div>
-      <textarea name="review" rows="5" placeholder="Review" class="textarea textarea-bordered textarea-sm w-full">{{ album_meta.review }}</textarea>
+      <div class="form-control">
+        <label class="label py-0.5"><span class="label-text text-xs opacity-70">Review</span></label>
+        <textarea name="review" rows="5" placeholder="Review" class="textarea textarea-bordered textarea-sm w-full">{{ album_meta.review }}</textarea>
+      </div>
       <button type="submit" class="btn btn-primary btn-sm">Apply Edits</button>
     </form>
     {% elif track_meta %}
     <div class="space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-base-300">
-        <div>
-          <h2 class="text-lg font-bold">{{ track_meta.track_number }}. {{ track_meta.title }}</h2>
-          <p class="text-xs font-mono opacity-60">{{ item.rel_path }}</p>
+        <div class="min-w-0">
+          <h2 class="text-lg font-bold truncate">{{ track_meta.track_number }}. {{ track_meta.title }}</h2>
+          <p class="text-xs font-mono opacity-60 truncate">{{ item.rel_path }}</p>
         </div>
-        <button type="button" data-action="fetch-lyrics" class="btn btn-primary btn-xs"
+        <button type="button" data-action="fetch-lyrics" class="btn btn-primary btn-xs flex-shrink-0"
                 hx-post="{{ base_url }}/music/{{ item.id }}/lyrics/fetch"
                 hx-target="#music-detail-pane"
                 hx-swap="innerHTML">
