@@ -58,11 +58,11 @@
         {% include "movies/_list.html" %}
       </div>
       <div class="p-2 border-t border-base-300 bg-base-100 flex items-center justify-between gap-1 text-xs">
-        <select name="action" class="select select-bordered select-xs" aria-label="Batch action">
+        <select name="action" class="select select-bordered select-xs min-w-0 flex-1" aria-label="Batch action">
           <option value="save">Save NFO</option>
           <option value="auto_match">Auto-match</option>
         </select>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1 shrink-0">
           <button type="button"
                   class="btn btn-xs btn-outline"
                   hx-post="{{ base_url }}/movies/batch"
