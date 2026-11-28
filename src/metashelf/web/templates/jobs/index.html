@@ -24,7 +24,7 @@
   (function() {
     const src = new EventSource("{{ base_url }}/jobs/stream");
     src.addEventListener("jobs", function() {
-      htmx.trigger(document.body, "jobs-updated");
+      document.body.dispatchEvent(new CustomEvent("jobs-updated"));
     });
   })();
 </script>
