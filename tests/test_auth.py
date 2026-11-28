@@ -28,7 +28,6 @@ def test_auth_lifecycle_and_csrf(tmp_path: Path) -> None:
         r = client.post(
             "/auth/setup",
             data={
-                "username": "admin",
                 "password": "password123",
                 "password_confirm": "password123",
             },
@@ -58,7 +57,7 @@ def test_auth_lifecycle_and_csrf(tmp_path: Path) -> None:
         # 6. Login with valid password succeeds
         r_in = client.post(
             "/auth/login",
-            data={"username": "admin", "password": "password123"},
+            data={"password": "password123"},
             follow_redirects=True,
         )
         assert r_in.status_code == 200
@@ -72,7 +71,6 @@ def test_login_rate_limiting(tmp_path: Path) -> None:
         client.post(
             "/auth/setup",
             data={
-                "username": "admin",
                 "password": "password123",
                 "password_confirm": "password123",
             },
@@ -82,12 +80,12 @@ def test_login_rate_limiting(tmp_path: Path) -> None:
         for _ in range(5):
             resp = client.post(
                 "/auth/login",
-                data={"username": "admin", "password": "wrong"},
+                data={"password": "wrong"},
             )
             assert resp.status_code == 401
 
         blocked = client.post(
             "/auth/login",
-            data={"username": "admin", "password": "password123"},
+            data={"password": "password123"},
         )
         assert blocked.status_code == 429

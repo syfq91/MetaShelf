@@ -199,7 +199,7 @@ def test_login_rate_limit_enforced(tmp_path: Path) -> None:
         for _ in range(12):
             resp = client.post(
                 "/auth/login",
-                data={"username": "admin", "password": "wrong-password"},
+                data={"password": "wrong-password"},
             )
             statuses.append(resp.status_code)
         assert 429 in statuses

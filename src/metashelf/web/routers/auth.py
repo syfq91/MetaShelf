@@ -32,39 +32,30 @@ async def setup_page(request: Request, session: DbSession) -> Response:
 async def setup_submit(
     request: Request,
     session: DbSession,
-    username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     password_confirm: Annotated[str, Form()],
 ) -> Response:
-    """Create the initial admin user."""
+    """Create the initial admin password."""
     base = request.app.state.settings.base_url.rstrip("/")
     if await has_any_user(session):
         return RedirectResponse(f"{base}/auth/login", status_code=status.HTTP_303_SEE_OTHER)
 
-    clean_user = username.strip()
-    if len(clean_user) < 2:
-        return render_template(
-            request,
-            "auth/setup.html",
-            {"error": "Username must be at least 2 characters.", "username": clean_user},
-            status_code=400,
-        )
     if len(password) < 8:
         return render_template(
             request,
             "auth/setup.html",
-            {"error": "Password must be at least 8 characters.", "username": clean_user},
+            {"error": "Password must be at least 8 characters."},
             status_code=400,
         )
     if password != password_confirm:
         return render_template(
             request,
             "auth/setup.html",
-            {"error": "Passwords do not match.", "username": clean_user},
+            {"error": "Passwords do not match."},
             status_code=400,
         )
 
-    user = User(username=clean_user, password_hash=hash_password(password))
+    user = User(username="admin", password_hash=hash_password(password))
     session.add(user)
     await session.commit()
 
@@ -96,10 +87,9 @@ async def login_page(request: Request, session: DbSession) -> Response:
 async def login_submit(
     request: Request,
     session: DbSession,
-    username: Annotated[str, Form()],
     password: Annotated[str, Form()],
 ) -> Response:
-    """Authenticate an admin user."""
+    """Authenticate with the configured access password."""
     base = request.app.state.settings.base_url.rstrip("/")
     if not await has_any_user(session):
         return RedirectResponse(f"{base}/auth/setup", status_code=status.HTTP_303_SEE_OTHER)
@@ -115,7 +105,7 @@ async def login_submit(
         )
 
     user = (
-        await session.execute(select(User).where(User.username == username.strip()))
+        await session.execute(select(User).order_by(User.id).limit(1))
     ).scalar_one_or_none()
 
     if user is None or not verify_password(password, user.password_hash):
@@ -123,7 +113,7 @@ async def login_submit(
         return render_template(
             request,
             "auth/login.html",
-            {"error": "Invalid username or password.", "username": username.strip()},
+            {"error": "Invalid password."},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 

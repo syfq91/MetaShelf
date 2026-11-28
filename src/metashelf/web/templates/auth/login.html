@@ -9,14 +9,8 @@
     {% endif %}
     <form method="post" action="{{ base_url }}/auth/login" class="space-y-3 mt-2">
       <div class="form-control">
-        <label class="label" for="username"><span class="label-text">Username</span></label>
-        <input id="username" name="username" type="text" required
-               value="{{ username | default('') }}"
-               class="input input-bordered input-sm w-full" />
-      </div>
-      <div class="form-control">
         <label class="label" for="password"><span class="label-text">Password</span></label>
-        <input id="password" name="password" type="password" required
+        <input id="password" name="password" type="password" required autofocus
                class="input input-bordered input-sm w-full" />
       </div>
       <button type="submit" class="btn btn-primary btn-sm w-full">Sign In</button>
